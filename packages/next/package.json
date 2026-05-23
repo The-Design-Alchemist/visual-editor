@@ -1,6 +1,6 @@
 {
   "name": "@aaqiljamal/visual-editor-next",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Visual-edit for Next.js — one install. Includes the overlay, the Babel plugin, and a Route Handler that does AST writes inside your dev process (no separate server).",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,14 +19,24 @@
   "bin": {
     "visual-editor-init": "bin/visual-editor-init.cjs"
   },
-  "files": ["dist", "bin", "README.md"],
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["visual-editor", "next", "tailwind", "css-modules", "styled-components"],
+  "keywords": [
+    "visual-editor",
+    "next",
+    "tailwind",
+    "css-modules",
+    "styled-components"
+  ],
   "license": "MIT",
   "author": "Aaqil Jamal",
   "repository": {
