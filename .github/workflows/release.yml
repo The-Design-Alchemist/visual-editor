@@ -43,5 +43,10 @@ jobs:
           title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # actions/setup-node writes an .npmrc that reads `${NODE_AUTH_TOKEN}`,
+          # so both names need to point at the same secret. NPM_TOKEN is what
+          # changesets/action looks at internally; NODE_AUTH_TOKEN is what npm
+          # publish itself reads via the setup-node-generated .npmrc.
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
