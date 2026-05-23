@@ -8,7 +8,7 @@
     "spikes/example-app"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w @aaqiljamal/visual-editor-babel-plugin && npm run build -w @aaqiljamal/visual-editor-runtime && npm run build -w @aaqiljamal/visual-editor-server && npm run build -w @aaqiljamal/visual-editor-next && npm run build -w @aaqiljamal/visual-editor-mcp",
     "test": "npm run test --workspaces --if-present",
     "test:server": "npm run test -w @aaqiljamal/visual-editor-server",
     "test:mcp": "npm run test -w @aaqiljamal/visual-editor-mcp",

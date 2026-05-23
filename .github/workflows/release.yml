@@ -30,8 +30,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build
-        run: npm run build --workspaces --if-present
+      - name: Build packages (dep order)
+        run: npm run build
 
       - name: Create release PR or publish
         uses: changesets/action@v1

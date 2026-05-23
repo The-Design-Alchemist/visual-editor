@@ -25,8 +25,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build
-        run: npm run build --workspaces --if-present
+      - name: Build packages (dep order)
+        run: npm run build
 
       - name: Test server
         run: npm run test -w @aaqiljamal/visual-editor-server
