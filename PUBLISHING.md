@@ -1,185 +1,144 @@
-# Publishing — handoff guide
+# Publishing
 
-This file is for the maintainer (Aaqil). It documents the steps needed to go
-from "everything is green locally" to "the packages are live on npm." Read
-this once, top to bottom, before pulling the trigger.
-
----
-
-## Pre-flight (do this once)
-
-### 1. npm account + scope
-
-```bash
-npm whoami        # confirm you're logged in as the account that owns @aaqiljamal
-npm login         # if not
-```
-
-The scope `@aaqiljamal` on npm needs to be associated with your account. If
-it isn't (first publish on this scope), the first `npm publish --access=public`
-will create it.
-
-Confirm:
-
-```bash
-curl -s https://registry.npmjs.org/-/user/org.couchdb.user:aaqiljamal | jq .
-```
-
-### 2. GitHub repo
-
-The empty repo at `github.com/The-Design-Alchemist/visual-editor` was
-created manually in the browser. Add it as the remote and push:
-
-```bash
-git remote add origin https://github.com/The-Design-Alchemist/visual-editor.git
-git push -u origin main
-```
-
-Confirm `gh auth status` shows `The-Design-Alchemist` as the active account
-before any subsequent `gh` commands (CI secrets, releases).
-
-After the first push, set repo topics on the GitHub web UI's **About** panel
-(click the ⚙ next to "About" on the repo page):
-`nextjs tailwindcss css-modules styled-components mcp claude-code react ast dev-tools visual-editor`
-
-### 3. NPM_TOKEN as a GitHub secret
-
-The release workflow (`.github/workflows/release.yml`) needs `NPM_TOKEN`
-to publish:
-
-```bash
-# Create an "Automation" token at https://www.npmjs.com/settings/<your-name>/tokens
-# Type: Automation (skips 2FA-on-publish prompt)
-
-gh secret set NPM_TOKEN
-# paste the token
-```
+**Status:** All 5 packages live on npm. Auto-release via changesets is wired up
+and verified end-to-end (first changeset → merged Version PR → auto-publish
+worked on 2026-05-23). For ongoing releases, you only need the **Ship a change**
+section below.
 
 ---
 
-## First publish (today's checklist)
-
-### 1. Local verification
+## Ship a change (the normal flow)
 
 ```bash
-npm install                  # workspaces install
-npm run build --workspaces --if-present
-npm run test:server          # 129/129 expected
-npm run test:mcp             # 7/7 expected
+# 1. Edit code, save.
+
+# 2. Describe what changed (interactive — picks bump level + packages):
+npx changeset
+# (creates .changeset/<random-name>.md)
+
+# 3. Commit + push (or open a PR and merge it):
+git add . && git commit -m "describe the change" && git push
+
+# 4. Wait ~30 seconds. The Release workflow opens a "chore: version packages" PR.
+
+# 5. Merge that PR. Release workflow re-runs and auto-publishes to npm.
 ```
 
-Anything red? Stop and fix before going further.
+That's the whole loop. You never run `npm publish` manually for this.
 
-### 2. Commit + push to main
+Versions move in sync only when the changeset mentions multiple packages.
+A changeset that only mentions `@aaqiljamal/visual-editor-next` will bump
+*only* `next` — the other 4 stay at their current version because their bytes
+didn't change. The `linked` array in `.changeset/config.json` aligns versions
+only when several packages bump together.
 
-```bash
-git add .
-git commit -m "v0.2.0 — Mode B ready"
-git push -u origin main
-```
+---
 
-CI on the push should be green within a few minutes. Check:
-
-```bash
-gh run watch
-```
-
-### 3. The first publish — manual, not via the workflow
-
-Because every package is at `0.2.0` and there are no changesets yet, the
-release workflow won't publish on its own. The first publish is manual:
+## Emergency manual publish (when CI is down or you need to bypass)
 
 ```bash
-npm run build --workspaces --if-present
-
-# Babel plugin and runtime and server first — next + mcp depend on them
+npm whoami                          # confirm aaqiljamal
 cd packages/babel-plugin && npm publish && cd ../..
-cd packages/runtime && npm publish && cd ../..
-cd packages/server && npm publish && cd ../..
-cd packages/next && npm publish && cd ../..
-cd packages/mcp && npm publish && cd ../..
+cd packages/runtime     && npm publish && cd ../..
+cd packages/server      && npm publish && cd ../..
+cd packages/next        && npm publish && cd ../..
+cd packages/mcp         && npm publish && cd ../..
 ```
 
-Each prompts for 2FA unless you used an Automation token via env:
-
-```bash
-NODE_AUTH_TOKEN=$NPM_TOKEN npm publish
-# or:
-echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-```
-
-Verify on each `npm publish`:
-
-- Package size looks reasonable (~10–500KB, not multi-MB)
-- The `tar tf` output shows `dist/` files, not `src/`
-- Provenance is generated (visible in the publish output)
-
-```bash
-# After all 5 are up:
-npm view @aaqiljamal/visual-editor-next
-```
-
-### 4. Subsequent releases — through changesets
-
-For every change:
-
-```bash
-npx changeset           # describe the change + bump level (patch/minor/major)
-# … commit + open PR + merge as normal …
-```
-
-Once the PR is on `main`, the release workflow creates a "chore: version
-packages" PR. Merging *that* PR triggers the publish.
+Order matters: `next` and `mcp` depend on the others. Each `prepublishOnly`
+rebuilds `dist/` automatically. You need a valid token in `~/.npmrc`.
 
 ---
 
-## Verification — does the install actually work?
+## Token rotation
 
-In an unrelated empty directory:
+The NPM_TOKEN currently in `~/.npmrc` + GitHub secret was generated on
+2026-05-23 and **was pasted into a chat conversation** during setup. Rotate it
+before the next release for a fresh one that never leaves your machine:
 
 ```bash
-mkdir /tmp/ve-smoke && cd /tmp/ve-smoke
-npx create-next-app@latest --typescript --tailwind --app --no-src-dir \
-  --turbopack --import-alias "@/*" --no-eslint --use-npm .
-
-npm install --save-dev \
-  @aaqiljamal/visual-editor-next \
-  @aaqiljamal/visual-editor-babel-plugin
-
-npx visual-editor-init
-# Manually add <VisualEditOverlay /> to app/layout.tsx (the init prints the snippet)
-
-npm run dev
-# Open http://localhost:3000
-# Hover any element → expect pink outline + box-model bands + source badge
+# 1. Delete the old token at https://www.npmjs.com/settings/aaqiljamal/tokens
+# 2. Generate a new one (Granular, Read+write, @aaqiljamal scope, Bypass 2FA, 90d)
+# 3. Update both locations:
+sed -i '' 's|_authToken=.*|_authToken=PASTE_NEW_TOKEN|' ~/.npmrc
+gh secret set NPM_TOKEN  # paste new token at the prompt; input is hidden
 ```
 
-If that works, the publish is real. If it doesn't, you missed a dist file,
-a missing peer, or the exports field is wrong. The CI catches the test
-failures but the install-from-fresh-project flow is only caught by this
-smoke test.
+The 90-day expiration is npm policy for granular tokens; you'll rotate ~4x/year.
 
 ---
 
-## Rollback
+## Initial setup (already done — for reference)
 
-If a published version is broken:
+These steps ran on 2026-05-23 and don't need to happen again:
 
-```bash
-# Deprecate without unpublishing (you have 72h to unpublish; after that,
-# you have to publish a new version)
-npm deprecate @aaqiljamal/visual-editor-next@0.2.0 "broken — use 0.2.1"
-```
-
-Then bump (changeset + push) and republish.
+| Step | What | How verified |
+|---|---|---|
+| 1 | npm account exists at `aaqiljamal` | `npm whoami` returns `aaqiljamal` |
+| 2 | `@aaqiljamal` scope claimed | First `npm publish` of v0.2.0 succeeded |
+| 3 | Granular access token generated | Token in `~/.npmrc` + GitHub `NPM_TOKEN` secret |
+| 4 | GitHub Actions permitted to create PRs | `gh api repos/.../actions/permissions/workflow` returns `default_workflow_permissions: write` |
+| 5 | First 5-package publish | `npm view @aaqiljamal/visual-editor-next` returns 0.2.0 |
+| 6 | Auto-release flow validated | Changeset → Version PR → merge → 0.2.1 published |
 
 ---
 
-## Common first-publish gotchas
+## Gotchas we hit (and the durable fixes)
 
-| Symptom | Fix |
+| Symptom | Cause | Fix (already applied) |
+|---|---|---|
+| Release fails: "GitHub Actions is not permitted to create or approve pull requests" | Repo default since GitHub tightened defaults | `gh api -X PUT repos/<owner>/<repo>/actions/permissions/workflow -f default_workflow_permissions=write -F can_approve_pull_request_reviews=true` |
+| Release succeeds but no Version PR appears | `.changeset/*.md` was gitignored | `.gitignore` now keeps them tracked |
+| Release publish step 404s with "Not found" on PUT | Two distinct causes — see below | Set both `NPM_TOKEN` *and* `NODE_AUTH_TOKEN` env in workflow; remove `NPM_CONFIG_PROVENANCE` until Trusted Publishing is set up |
+| CI build fails with "Cannot find module @aaqiljamal/visual-editor-server" | `npm run build --workspaces` doesn't respect topological order | Root `build` script chains packages explicitly: babel-plugin → runtime → server → next → mcp |
+| `npm warn publish "repository.url" was normalized` | npm wants `git+https://` prefix | All package.json `repository.url` use `git+` prefix |
+
+### The two distinct 404 causes
+
+1. **NODE_AUTH_TOKEN missing.** `actions/setup-node@v4` with `registry-url`
+   writes `~/.npmrc` like `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`.
+   npm reads that env var; if it's unset, the substitution yields an empty
+   string and the PUT 404s. The workflow now sets *both* `NPM_TOKEN`
+   (what changesets/action reads internally) and `NODE_AUTH_TOKEN` (what npm
+   publish itself reads via the .npmrc template) to the same secret.
+
+2. **Provenance + no Trusted Publisher.** With `NPM_CONFIG_PROVENANCE: "true"`,
+   npm requires the package to be registered as a Trusted Publisher
+   (https://docs.npmjs.com/trusted-publishers). Since our packages were
+   bootstrapped with a local publish (not via CI), there's no trust
+   relationship — npm 404s the PUT even though OIDC signs the provenance
+   statement successfully against sigstore. Removing the env var falls back
+   to plain token auth, which works.
+
+---
+
+## Enabling Trusted Publishing (future cleanup)
+
+Provenance is a real security win — proves the package was built from the
+git commit and CI environment claimed. To enable:
+
+1. For each package on npmjs.com → package settings → **Trusted Publishers**:
+   - Repository owner: `The-Design-Alchemist`
+   - Repository: `visual-editor`
+   - Workflow filename: `release.yml`
+   - Environment: (leave blank)
+2. In `.github/workflows/release.yml`, add back:
+   ```yaml
+   NPM_CONFIG_PROVENANCE: "true"
+   ```
+3. Publish a new patch via the normal flow. The provenance badge will appear
+   on the npm page for each package.
+
+Five repeats of the npmjs Trusted Publisher form. ~10 minutes total.
+
+---
+
+## Common future failure modes
+
+| Symptom | Try |
 |---|---|
-| `403 Forbidden — Public registration not allowed for this scope` | First publish needs `--access=public`. Verify `publishConfig.access: "public"` is in each package.json (it is). |
-| `404 Not Found — @aaqiljamal/visual-editor-server` (from a consumer) | Publish order matters. babel-plugin + runtime + server must be on npm before `next` resolves them. |
-| `ENOENT: no such file dist/index.js` | tsup didn't run before publish. Either run `npm run build` manually, or trust `prepublishOnly` (which `npm publish` invokes). |
-| `error: missing types entry "./dist/index.d.ts"` | tsup's dts emit failed silently — usually a TS strictness error in source. Run `npm run build` standalone in that package to see the real error. |
+| Release fails 401 / token expired | Rotate NPM_TOKEN (see Token rotation section). 90-day expiration. |
+| Release fails 403 / scope permission | Token was generated without `@aaqiljamal` scope checked. Re-generate. |
+| Version PR doesn't include all expected packages | Changeset markdown only mentioned the ones it bumped. Add more `"@scope/pkg": patch` lines to bump siblings. |
+| Spurious "no changesets" status check on PR | The PR doesn't include a `.changeset/*.md` file. Add one before merging, or merge as a chore that needs no version bump. |
+| Local `npm publish` works but CI doesn't | First check both env vars (`NPM_TOKEN` + `NODE_AUTH_TOKEN`) are present in the Release workflow's `env:` block. |
