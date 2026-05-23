@@ -1,8 +1,8 @@
 {
-  "name": "visual-edit-monorepo",
+  "name": "visual-editor-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "Monorepo root for visual-edit — visual gestures → deterministic source edits.",
+  "description": "Monorepo root for visual-editor — visual gestures → deterministic source edits.",
   "workspaces": [
     "packages/*",
     "spikes/example-app"
@@ -10,8 +10,8 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "test:server": "npm run test -w @aaqiljamal/visual-edit-server",
-    "test:mcp": "npm run test -w @aaqiljamal/visual-edit-mcp",
+    "test:server": "npm run test -w @aaqiljamal/visual-editor-server",
+    "test:mcp": "npm run test -w @aaqiljamal/visual-editor-mcp",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "changeset": "changeset",
     "version-packages": "changeset version",
@@ -29,6 +29,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aaqiljamal/visual-edit.git"
+    "url": "https://github.com/The-Design-Alchemist/visual-editor.git"
   }
 }

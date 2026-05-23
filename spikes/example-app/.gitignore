@@ -40,5 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# visual-edit local session token
-/.visual-edit/
+# visual-editor local session token
+/.visual-editor/

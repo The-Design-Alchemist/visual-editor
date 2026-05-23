@@ -54,7 +54,7 @@ try {
 
   // Overlay mount marker.
   await page.waitForFunction(
-    () => document.body.dataset.visualEditMounted === "true",
+    () => document.body.dataset.visualEditorMounted === "true",
     null,
     { timeout: 8000 },
   );
@@ -105,7 +105,7 @@ try {
   // 4. Applied state — use the dev test hook to click Apply
   // -------------------------------------------------------------------------
   const applyResult = await page.evaluate(() =>
-    window.__visualEditSpike?.clickApply?.() ?? { error: "no-hook" },
+    window.__visualEditorSpike?.clickApply?.() ?? { error: "no-hook" },
   );
   if (applyResult?.clicked) {
     await page.waitForTimeout(1100);

@@ -12,8 +12,8 @@ dist/
 .turbo/
 .cache/
 
-# visual-edit local state (history.json)
-.visual-edit/
+# visual-editor local state (history.json)
+.visual-editor/
 
 # Logs
 *.log

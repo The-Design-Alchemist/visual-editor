@@ -25,7 +25,7 @@ const restoreAndSettle = async () => {
 try {
   await page.goto(PAGE_URL, { waitUntil: "networkidle" });
   await page.waitForFunction(
-    () => document.body.dataset.visualEditMounted === "true",
+    () => document.body.dataset.visualEditorMounted === "true",
     null,
     { timeout: 5000 },
   );
@@ -61,9 +61,9 @@ try {
   await page.waitForTimeout(400);
 
   results.resize_pending = await page.evaluate(() =>
-    window.__visualEditSpike.pendingPanelText(),
+    window.__visualEditorSpike.pendingPanelText(),
   );
-  await page.evaluate(() => window.__visualEditSpike.clickApply());
+  await page.evaluate(() => window.__visualEditorSpike.clickApply());
   await page.waitForTimeout(500);
 
   const afterResize = await readFile(PAGE_FILE, "utf8");
@@ -80,9 +80,9 @@ try {
   await page.waitForTimeout(200);
 
   results.padding_pending = await page.evaluate(() =>
-    window.__visualEditSpike.pendingPanelText(),
+    window.__visualEditorSpike.pendingPanelText(),
   );
-  await page.evaluate(() => window.__visualEditSpike.clickApply());
+  await page.evaluate(() => window.__visualEditorSpike.clickApply());
   await page.waitForTimeout(500);
 
   const afterPadding = await readFile(PAGE_FILE, "utf8");
@@ -103,9 +103,9 @@ try {
   await page.waitForTimeout(200);
 
   results.margin_pending = await page.evaluate(() =>
-    window.__visualEditSpike.pendingPanelText(),
+    window.__visualEditorSpike.pendingPanelText(),
   );
-  await page.evaluate(() => window.__visualEditSpike.clickApply());
+  await page.evaluate(() => window.__visualEditorSpike.clickApply());
   await page.waitForTimeout(500);
 
   const afterMargin = await readFile(PAGE_FILE, "utf8");
@@ -123,7 +123,7 @@ try {
   await page.keyboard.press("[");
   await page.waitForTimeout(200);
   results.padding_down_pending = await page.evaluate(() =>
-    window.__visualEditSpike.pendingPanelText(),
+    window.__visualEditorSpike.pendingPanelText(),
   );
 
   await page.keyboard.press("Escape"); // clear pending
@@ -146,16 +146,16 @@ try {
   await page.waitForTimeout(200);
 
   results.instance_pending = await page.evaluate(() =>
-    window.__visualEditSpike.pendingPanelText(),
+    window.__visualEditorSpike.pendingPanelText(),
   );
 
   // Count the dashed instance outlines in the shadow.
   results.instance_outlineCount = await page.evaluate(() => {
-    const spike = window.__visualEditSpike;
+    const spike = window.__visualEditorSpike;
     return spike.instanceOutlineCount?.() ?? "helper-missing";
   });
 
-  await page.evaluate(() => window.__visualEditSpike.clickApply());
+  await page.evaluate(() => window.__visualEditorSpike.clickApply());
   await page.waitForTimeout(600);
 
   const afterInstances = await readFile(PAGE_FILE, "utf8");

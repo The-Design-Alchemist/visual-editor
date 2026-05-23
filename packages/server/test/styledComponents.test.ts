@@ -154,7 +154,7 @@ const Card = styled.div\`padding: 1rem;\`;`;
 let workspace: string;
 
 before(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-edit-styled-"));
+  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-editor-styled-"));
 });
 
 after(async () => {

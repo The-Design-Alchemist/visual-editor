@@ -1,4 +1,4 @@
-# visual-edit
+# visual-editor
 
 > **Visual gestures on your `next dev` page → deterministic Tailwind / CSS Modules / styled-components edits in your source files.** With Claude Code as reviewer-committer (not interpreter) over stdio MCP.
 
@@ -15,7 +15,7 @@
 
 ## Why this exists
 
-Most visual editors prompt an LLM to guess the edit. visual-edit doesn't guess.
+Most visual editors prompt an LLM to guess the edit. visual-editor doesn't guess.
 Every gesture maps to a deterministic AST transformation; if a write isn't
 provably safe, it refuses loudly with a structured reason. The LLM in the loop
 is for review and batching, not interpretation.
@@ -24,16 +24,16 @@ is for review and batching, not interpretation.
 
 ```bash
 npm install --save-dev \
-  @aaqiljamal/visual-edit-next \
-  @aaqiljamal/visual-edit-babel-plugin
+  @aaqiljamal/visual-editor-next \
+  @aaqiljamal/visual-editor-babel-plugin
 
-npx visual-edit-init
+npx visual-editor-init
 ```
 
 Then add **two lines** to `app/layout.tsx`:
 
 ```tsx
-import { VisualEditOverlay } from "@aaqiljamal/visual-edit-next";
+import { VisualEditOverlay } from "@aaqiljamal/visual-editor-next";
 
 // inside <body>:
 {process.env.NODE_ENV === "development" && <VisualEditOverlay />}
@@ -89,21 +89,21 @@ if you hit something.
 
 | Package | What it is |
 |---|---|
-| [`@aaqiljamal/visual-edit-next`](./packages/next) | Meta-package for Next.js — install this one |
-| [`@aaqiljamal/visual-edit-runtime`](./packages/runtime) | The browser overlay (Preact, closed Shadow DOM) |
-| [`@aaqiljamal/visual-edit-babel-plugin`](./packages/babel-plugin) | Stamps `data-oid` and related attributes on JSX at build time |
-| [`@aaqiljamal/visual-edit-server`](./packages/server) | The Node-side AST mutator (Tailwind / CSS Modules / styled-components) |
-| [`@aaqiljamal/visual-edit-mcp`](./packages/mcp) | stdio MCP server for Claude Code integration |
+| [`@aaqiljamal/visual-editor-next`](./packages/next) | Meta-package for Next.js — install this one |
+| [`@aaqiljamal/visual-editor-runtime`](./packages/runtime) | The browser overlay (Preact, closed Shadow DOM) |
+| [`@aaqiljamal/visual-editor-babel-plugin`](./packages/babel-plugin) | Stamps `data-oid` and related attributes on JSX at build time |
+| [`@aaqiljamal/visual-editor-server`](./packages/server) | The Node-side AST mutator (Tailwind / CSS Modules / styled-components) |
+| [`@aaqiljamal/visual-editor-mcp`](./packages/mcp) | stdio MCP server for Claude Code integration |
 
 ## Claude Code integration
 
 ```bash
-npm install --save-dev @aaqiljamal/visual-edit-mcp
+npm install --save-dev @aaqiljamal/visual-editor-mcp
 
-claude mcp add visual-edit \
-  --env VISUAL_EDIT_WORKSPACE_ROOT="$(pwd)" \
-  --env VISUAL_EDIT_SERVER_URL="http://localhost:3000/api/visual-edit" \
-  -- npx visual-edit-mcp
+claude mcp add visual-editor \
+  --env VISUAL_EDITOR_WORKSPACE_ROOT="$(pwd)" \
+  --env VISUAL_EDITOR_SERVER_URL="http://localhost:3000/api/visual-editor" \
+  -- npx visual-editor-mcp
 ```
 
 Inside Claude Code, `/mcp` shows 6 tools (`get_selected_element`, `propose_change`,

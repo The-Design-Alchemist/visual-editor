@@ -1,11 +1,11 @@
-// Public surface of @aaqiljamal/visual-edit-next.
+// Public surface of @aaqiljamal/visual-editor-next.
 //
 // For users:
-//   import { VisualEditOverlay } from "@aaqiljamal/visual-edit-next";
-//   export { GET, POST, DELETE } from "@aaqiljamal/visual-edit-next/route";
+//   import { VisualEditOverlay } from "@aaqiljamal/visual-editor-next";
+//   export { GET, POST, DELETE } from "@aaqiljamal/visual-editor-next/route";
 //
 // One package = overlay + route handler + Babel plugin (transitive).
-// The separate `visual-edit-server` CLI is still available via
-// @aaqiljamal/visual-edit-server but isn't needed in this setup.
+// The separate `visual-editor-server` CLI is still available via
+// @aaqiljamal/visual-editor-server but isn't needed in this setup.
 
-export { VisualEditOverlay } from "@aaqiljamal/visual-edit-runtime";
+export { VisualEditOverlay } from "@aaqiljamal/visual-editor-runtime";

@@ -5,11 +5,11 @@
   "fixed": [],
   "linked": [
     [
-      "@aaqiljamal/visual-edit-babel-plugin",
-      "@aaqiljamal/visual-edit-runtime",
-      "@aaqiljamal/visual-edit-server",
-      "@aaqiljamal/visual-edit-next",
-      "@aaqiljamal/visual-edit-mcp"
+      "@aaqiljamal/visual-editor-babel-plugin",
+      "@aaqiljamal/visual-editor-runtime",
+      "@aaqiljamal/visual-editor-server",
+      "@aaqiljamal/visual-editor-next",
+      "@aaqiljamal/visual-editor-mcp"
     ]
   ],
   "access": "public",

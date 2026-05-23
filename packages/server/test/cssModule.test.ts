@@ -155,7 +155,7 @@ test("mutate: only updates the top-level rule, ignores nested @media overrides",
 let workspace: string;
 
 before(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-edit-css-"));
+  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-editor-css-"));
 });
 
 after(async () => {

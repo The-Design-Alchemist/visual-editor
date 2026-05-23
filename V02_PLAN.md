@@ -24,7 +24,7 @@
 ## Tier A — Implementing in this session
 
 ### A1. Persistent undo history
-Recent applies survive server restart by writing to `<workspace>/.visual-edit/history.json` (last 50). Loaded on `SessionToken.load()`-adjacent startup path. **Effort:** ~30 min. **Risk:** none — same shape as the existing in-memory deque, plus disk I/O.
+Recent applies survive server restart by writing to `<workspace>/.visual-editor/history.json` (last 50). Loaded on `SessionToken.load()`-adjacent startup path. **Effort:** ~30 min. **Risk:** none — same shape as the existing in-memory deque, plus disk I/O.
 
 ### A2. Origin pinning + token-bootstrap hardening
 CLI accepts `--allow-origin http://localhost:3000` (repeatable). Server reads the `Origin` header on writes and refuses if not in the allowlist. `/token` is similarly gated. This closes the spike-era hole where any local page can fetch the token. **Effort:** ~45 min. **Risk:** low — but cross-port dev (e.g. `next dev --port 3002`) needs the new flag.
@@ -90,10 +90,10 @@ Plus: standard styled-components SSR registry (`app/lib/StyledRegistry.tsx`) wir
 *Out of scope per Principle: dev-only.* Not on the v0.2 list.
 
 ### B5. Persistent staged-changes buffer (drafts) ✅ SHIPPED 2026-05-18
-Overlay persists the pending change to `localStorage["visual-edit:draft-v1"]` on every showPending; clears on Apply success / Discard / hidePending. On mount, looks for an existing draft and re-resolves the element by data-oid. If the DOM still has the matching element, restore the pending panel; otherwise clear the stale draft. Verified: pending change `p-4 → p-5 (20px)` survives a full browser reload.
+Overlay persists the pending change to `localStorage["visual-editor:draft-v1"]` on every showPending; clears on Apply success / Discard / hidePending. On mount, looks for an existing draft and re-resolves the element by data-oid. If the DOM still has the matching element, restore the pending panel; otherwise clear the stale draft. Verified: pending change `p-4 → p-5 (20px)` survives a full browser reload.
 
 ### B6. /history with diff replay ✅ SHIPPED 2026-05-18
-History panel UI in the overlay. Click the "visual-edit on" badge to toggle. Panel pulls from `GET /recent`, renders newest-first with relative timestamps, file:line:col, before → after tokens, and a per-row Undo button that POSTs to `/revert {file, line, col}`. List refreshes after Undo. Verified with 31 historical entries; Undo decremented count to 30.
+History panel UI in the overlay. Click the "visual-editor on" badge to toggle. Panel pulls from `GET /recent`, renders newest-first with relative timestamps, file:line:col, before → after tokens, and a per-row Undo button that POSTs to `/revert {file, line, col}`. List refreshes after Undo. Verified with 31 historical entries; Undo decremented count to 30.
 
 ### B7. Cross-package symbol awareness in monorepos ✅ SHIPPED 2026-05-18 (first cut)
 Babel plugin now accepts a `root` option, OR walks up the filesystem looking for workspace markers (`pnpm-workspace.yaml`, `turbo.json`, `lerna.json`, `nx.json`, `.git`) to auto-discover the monorepo root. Falls back to `state.cwd` if no marker is found. data-oid paths are emitted relative to that root, so a Next.js app under `apps/web` that imports from `packages/ui` produces `data-oid="packages/ui/Card.tsx:12:4"` — the server then resolves it against the same root via `resolveSafe`. Single-package projects (like our spike) still work because the example-app's own `.git` is the nearest marker. **Open:** a real pnpm/turborepo monorepo fixture would prove the cross-package write-back; the plumbing is in place but unverified outside the single-package case.
@@ -122,7 +122,7 @@ Track every overlay-driven change as a separate git commit chain, with revert/br
 Inferring "what flex/grid container would best replicate the current layout" is interpretive and pattern-matchy. To do it deterministically, we'd need a strict mapping from observed layout to a flex declaration. To do it well, we'd want an LLM. **Decision required:** does v0.2 accept an LLM-mediated suggestion that the AST writer still applies deterministically? If yes, this is a v0.2 stretch. If no, defer until we have a principled algorithm.
 
 ### D2. Component extraction ("make this a reusable Card")
-Choosing the right component boundary, naming the component, identifying its props, picking the import path — all interpretive. Same gating decision as D1. **Recommendation:** these belong in a "LLM-assisted refactor" tool that lives ALONGSIDE visual-edit, not inside it. Keeping visual-edit deterministic preserves the trust model.
+Choosing the right component boundary, naming the component, identifying its props, picking the import path — all interpretive. Same gating decision as D1. **Recommendation:** these belong in a "LLM-assisted refactor" tool that lives ALONGSIDE visual-editor, not inside it. Keeping visual-editor deterministic preserves the trust model.
 
 ### D3. Instance-specific edits (changing only the second `<Card />`)
 v0.1 always edits the source. v0.2 could "lift" the className to a prop and pass a different value at the call site of the second instance — but that's a structural refactor that changes the component's public API. Mechanically possible but semantically risky. **Decision required:** is the lifted prop's name user-chosen, or auto-generated? Either way the project's TS surface changes. Probably v0.3.

@@ -15,7 +15,7 @@
  * the framing. Diagnostics go to stderr via `console.error`.
  *
  * Register with Claude Code:
- *   claude mcp add visual-edit -- node --import tsx /abs/path/packages/mcp/src/server.ts
+ *   claude mcp add visual-editor -- node --import tsx /abs/path/packages/mcp/src/server.ts
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -24,18 +24,18 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
 const SERVER_URL =
-  process.env.VISUAL_EDIT_SERVER_URL ?? "http://127.0.0.1:7790";
+  process.env.VISUAL_EDITOR_SERVER_URL ?? "http://127.0.0.1:7790";
 
 // Token resolution: explicit env > workspace session.json > GET /token > none.
 // The workspace path is the same one the HTTP server's CLI was started with;
-// MCP clients pass it via VISUAL_EDIT_WORKSPACE_ROOT.
+// MCP clients pass it via VISUAL_EDITOR_WORKSPACE_ROOT.
 async function resolveToken(): Promise<string | null> {
-  if (process.env.VISUAL_EDIT_TOKEN) return process.env.VISUAL_EDIT_TOKEN;
+  if (process.env.VISUAL_EDITOR_TOKEN) return process.env.VISUAL_EDITOR_TOKEN;
 
   const workspace =
-    process.env.VISUAL_EDIT_WORKSPACE_ROOT ?? process.cwd();
+    process.env.VISUAL_EDITOR_WORKSPACE_ROOT ?? process.cwd();
   try {
-    const filePath = path.join(workspace, ".visual-edit", "session.json");
+    const filePath = path.join(workspace, ".visual-editor", "session.json");
     const json = JSON.parse(await fs.readFile(filePath, "utf8")) as {
       token?: unknown;
     };
@@ -62,7 +62,7 @@ async function getToken(): Promise<string | null> {
 }
 
 const server = new McpServer({
-  name: "visual-edit",
+  name: "visual-editor",
   version: "0.0.1",
 });
 
@@ -123,7 +123,7 @@ server.registerTool(
       return ok(JSON.stringify(body));
     } catch (err) {
       return fail(
-        `Could not reach visual-edit server at ${SERVER_URL}: ${(err as Error).message}. ` +
+        `Could not reach visual-editor server at ${SERVER_URL}: ${(err as Error).message}. ` +
           `Is it running? \`npx tsx packages/server/src/cli.ts --port 7790 --workspace .\``,
       );
     }
@@ -158,7 +158,7 @@ server.registerTool(
       if (status === 200) return ok(JSON.stringify(body));
       return fail(`HTTP ${status}: ${JSON.stringify(body)}`);
     } catch (err) {
-      return fail(`Could not reach visual-edit server: ${(err as Error).message}`);
+      return fail(`Could not reach visual-editor server: ${(err as Error).message}`);
     }
   },
 );
@@ -181,7 +181,7 @@ server.registerTool(
       if (status === 200) return ok(JSON.stringify(body));
       return fail(`HTTP ${status}: ${JSON.stringify(body)}`);
     } catch (err) {
-      return fail(`Could not reach visual-edit server: ${(err as Error).message}`);
+      return fail(`Could not reach visual-editor server: ${(err as Error).message}`);
     }
   },
 );
@@ -208,7 +208,7 @@ server.registerTool(
       if (status === 200) return ok(JSON.stringify(body));
       return fail(`HTTP ${status}: ${JSON.stringify(body)}`);
     } catch (err) {
-      return fail(`Could not reach visual-edit server: ${(err as Error).message}`);
+      return fail(`Could not reach visual-editor server: ${(err as Error).message}`);
     }
   },
 );
@@ -243,7 +243,7 @@ server.registerTool(
       if (status === 200) return ok(JSON.stringify(body));
       return fail(`HTTP ${status}: ${JSON.stringify(body)}`);
     } catch (err) {
-      return fail(`Could not reach visual-edit server: ${(err as Error).message}`);
+      return fail(`Could not reach visual-editor server: ${(err as Error).message}`);
     }
   },
 );
@@ -279,7 +279,7 @@ server.registerTool(
       if (status === 200) return ok(JSON.stringify(body));
       return fail(`HTTP ${status}: ${JSON.stringify(body)}`);
     } catch (err) {
-      return fail(`Could not reach visual-edit server: ${(err as Error).message}`);
+      return fail(`Could not reach visual-editor server: ${(err as Error).message}`);
     }
   },
 );

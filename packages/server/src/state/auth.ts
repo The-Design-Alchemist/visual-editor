@@ -2,12 +2,12 @@ import { randomBytes } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-const SESSION_DIRNAME = ".visual-edit";
+const SESSION_DIRNAME = ".visual-editor";
 const SESSION_FILENAME = "session.json";
 
 /**
  * Per-session token. Mounted on startup, kept in memory, and persisted to
- * `<workspace>/.visual-edit/session.json` so the MCP stdio server (a
+ * `<workspace>/.visual-editor/session.json` so the MCP stdio server (a
  * sibling process spawned by Claude Code) can read it without us having to
  * pipe it through a separate transport.
  *

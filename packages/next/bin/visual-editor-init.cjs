@@ -20,7 +20,7 @@ const wouldWrite = (label) =>
   process.stdout.write(`  ${dryRun ? "·" : "✓"} ${dryRun ? "would write " : ""}${label}\n`);
 
 process.stdout.write(
-  `\nInitializing visual-edit in ${cwd}${dryRun ? " (dry run)" : ""}\n\n`,
+  `\nInitializing visual-editor in ${cwd}${dryRun ? " (dry run)" : ""}\n\n`,
 );
 
 // ---------------------------------------------------------------------------
@@ -48,7 +48,7 @@ const allDeps = Object.assign(
 );
 if (!allDeps.next) {
   fail(
-    "This project doesn't declare a Next.js dependency. visual-edit only " +
+    "This project doesn't declare a Next.js dependency. visual-editor only " +
       "supports Next.js App Router projects (see docs for Vite/Remix flow).",
   );
 }
@@ -63,15 +63,15 @@ const hasPagesRouter = fs.existsSync(pagesDir) || fs.existsSync(srcPagesDir);
 
 if (!hasAppRouter && !force) {
   fail(
-    "No `app/` (or `src/app/`) directory found. visual-edit requires the " +
-      "App Router. If this is a Pages Router project, visual-edit doesn't " +
+    "No `app/` (or `src/app/`) directory found. visual-editor requires the " +
+      "App Router. If this is a Pages Router project, visual-editor doesn't " +
       "support it yet. Use --force to proceed anyway.",
   );
 }
 
 if (hasPagesRouter && !force) {
   warn(
-    "Detected a `pages/` directory alongside `app/`. visual-edit's Route " +
+    "Detected a `pages/` directory alongside `app/`. visual-editor's Route " +
       "Handler will only fire for App Router routes. Pages Router-rendered " +
       "elements will be visible to the overlay but Apply may behave oddly. " +
       "Use --force to suppress this warning.",
@@ -84,11 +84,11 @@ const appRoot = fs.existsSync(srcAppDir) ? srcAppDir : appDir;
 process.stdout.write("\nProject looks like a Next.js App Router app. Proceeding.\n\n");
 
 // ---------------------------------------------------------------------------
-// 1. app/api/visual-edit/[...path]/route.ts
+// 1. app/api/visual-editor/[...path]/route.ts
 // ---------------------------------------------------------------------------
 
 {
-  const routeDir = path.join(appRoot, "api", "visual-edit", "[...path]");
+  const routeDir = path.join(appRoot, "api", "visual-editor", "[...path]");
   const routeFile = path.join(routeDir, "route.ts");
   if (fs.existsSync(routeFile)) {
     note(`route.ts exists at ${path.relative(cwd, routeFile)} — leaving it alone`);
@@ -97,7 +97,7 @@ process.stdout.write("\nProject looks like a Next.js App Router app. Proceeding.
       fs.mkdirSync(routeDir, { recursive: true });
       fs.writeFileSync(
         routeFile,
-        'export { GET, POST, DELETE } from "@aaqiljamal/visual-edit-next/route";\n',
+        'export { GET, POST, DELETE } from "@aaqiljamal/visual-editor-next/route";\n',
       );
     }
     wouldWrite(path.relative(cwd, routeFile));
@@ -112,13 +112,13 @@ process.stdout.write("\nProject looks like a Next.js App Router app. Proceeding.
   const babelFile = path.join(cwd, "babel.config.js");
   if (fs.existsSync(babelFile)) {
     const current = fs.readFileSync(babelFile, "utf8");
-    if (current.includes("@aaqiljamal/visual-edit-babel-plugin")) {
+    if (current.includes("@aaqiljamal/visual-editor-babel-plugin")) {
       note("babel.config.js already references the plugin");
     } else {
       warn(
         "babel.config.js exists with other config. Add this to its `plugins` array manually:",
       );
-      process.stdout.write('       "@aaqiljamal/visual-edit-babel-plugin"\n');
+      process.stdout.write('       "@aaqiljamal/visual-editor-babel-plugin"\n');
     }
   } else {
     warn(
@@ -131,7 +131,7 @@ process.stdout.write("\nProject looks like a Next.js App Router app. Proceeding.
         babelFile,
         'module.exports = {\n' +
           '  presets: ["next/babel"],\n' +
-          '  plugins: ["@aaqiljamal/visual-edit-babel-plugin"],\n' +
+          '  plugins: ["@aaqiljamal/visual-editor-babel-plugin"],\n' +
           '};\n',
       );
     }
@@ -145,26 +145,26 @@ process.stdout.write("\nProject looks like a Next.js App Router app. Proceeding.
 
 {
   const giFile = path.join(cwd, ".gitignore");
-  const entry = "/.visual-edit/";
+  const entry = "/.visual-editor/";
   if (fs.existsSync(giFile)) {
     const current = fs.readFileSync(giFile, "utf8");
     if (current.split("\n").some((l) => l.trim() === entry)) {
-      note(".gitignore already has /.visual-edit/");
+      note(".gitignore already has /.visual-editor/");
     } else {
       if (!dryRun) {
         fs.appendFileSync(
           giFile,
           (current.endsWith("\n") ? "" : "\n") +
-            "\n# visual-edit local state\n" +
+            "\n# visual-editor local state\n" +
             entry +
             "\n",
         );
       }
-      wouldWrite("added /.visual-edit/ to .gitignore");
+      wouldWrite("added /.visual-editor/ to .gitignore");
     }
   } else {
     if (!dryRun) {
-      fs.writeFileSync(giFile, "# visual-edit local state\n" + entry + "\n");
+      fs.writeFileSync(giFile, "# visual-editor local state\n" + entry + "\n");
     }
     wouldWrite(".gitignore");
   }
@@ -181,7 +181,7 @@ const layoutRel = fs.existsSync(layoutPath)
 
 process.stdout.write(
   `\nManual step — mount the overlay in ${layoutRel}:\n\n` +
-    '  import { VisualEditOverlay } from "@aaqiljamal/visual-edit-next";\n\n' +
+    '  import { VisualEditOverlay } from "@aaqiljamal/visual-editor-next";\n\n' +
     "  export default function RootLayout({ children }) {\n" +
     "    return (\n" +
     '      <html>\n' +

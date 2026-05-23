@@ -5,7 +5,7 @@ import * as fs from "node:fs/promises";
  * footprint negligible. Used by the 4th MCP tool (`revert_change`) and
  * the overlay's "undo last apply" affordance.
  *
- * v0.2: persists to `<workspace>/.visual-edit/history.json` so the undo
+ * v0.2: persists to `<workspace>/.visual-editor/history.json` so the undo
  * stack survives server restarts. Persistence is fire-and-forget on every
  * mutation — `persistNow()` returns a Promise that tests can await for
  * deterministic checks.

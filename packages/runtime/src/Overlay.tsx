@@ -11,8 +11,8 @@ import Moveable from "moveable";
 //   4. Hover gives react-grab-style outline + source badge (data-oid + component name).
 //   5. A self-test marker on `document.body` confirms the mount worked.
 
-const ANCHOR_TAG = "visual-edit-anchor";
-const SELF_TEST_KEY = "visualEditMounted";
+const ANCHOR_TAG = "visual-editor-anchor";
+const SELF_TEST_KEY = "visualEditorMounted";
 
 type FiberLike = {
   type?: unknown;
@@ -323,12 +323,12 @@ type PendingChange = {
 };
 
 // Default endpoint = the Next.js Route Handler mount point from
-// @aaqiljamal/visual-edit-next. Pass a `serverUrl` prop to <VisualEditOverlay /> if
+// @aaqiljamal/visual-editor-next. Pass a `serverUrl` prop to <VisualEditOverlay /> if
 // you're using the standalone server CLI (e.g. "http://127.0.0.1:7790").
 // Module-level let so the closure-bound helpers below (ensureSessionToken,
 // authedFetch) see the resolved value — works for one overlay per page.
-let SERVER_URL: string = "/api/visual-edit";
-const DRAFT_STORAGE_KEY = "visual-edit:draft-v1";
+let SERVER_URL: string = "/api/visual-editor";
+const DRAFT_STORAGE_KEY = "visual-editor:draft-v1";
 
 // Persisted draft — the pending-but-not-yet-applied change. Survives page
 // reloads via localStorage. The DOM element itself can't be persisted, so
@@ -420,9 +420,9 @@ async function authedFetch(
 export type VisualEditOverlayProps = {
   /**
    * Where the overlay sends mutation requests. Defaults to
-   * "/api/visual-edit" — the path your Next.js Route Handler is mounted
-   * at via @aaqiljamal/visual-edit-next. For the standalone server (used by
-   * @aaqiljamal/visual-edit-server's CLI), pass "http://127.0.0.1:7790".
+   * "/api/visual-editor" — the path your Next.js Route Handler is mounted
+   * at via @aaqiljamal/visual-editor-next. For the standalone server (used by
+   * @aaqiljamal/visual-editor-server's CLI), pass "http://127.0.0.1:7790".
    */
   serverUrl?: string;
 };
@@ -625,7 +625,7 @@ export default function Overlay({ serverUrl }: VisualEditOverlayProps = {}) {
       .shortcuts-hint .available { color: #cbd5e1; }
       .badge { cursor: pointer; user-select: none; }
       /* B6: history panel showing recent applies. Slides in from the
-         right when the user clicks the "visual-edit on" badge. */
+         right when the user clicks the "visual-editor on" badge. */
       .history-panel {
         position: fixed; display: none;
         top: 52px; right: 12px;
@@ -804,7 +804,7 @@ export default function Overlay({ serverUrl }: VisualEditOverlayProps = {}) {
 
     const ui = document.createElement("div");
     shadow.appendChild(ui);
-    render(h("div", { className: "badge" }, "visual-edit on"), ui);
+    render(h("div", { className: "badge" }, "visual-editor on"), ui);
 
     // B6: history panel — populated lazily on first open from GET /recent.
     const historyPanel = document.createElement("div");
@@ -1171,7 +1171,7 @@ export default function Overlay({ serverUrl }: VisualEditOverlayProps = {}) {
       }
     });
 
-    // Toggle history panel by clicking the visual-edit-on badge.
+    // Toggle history panel by clicking the visual-editor-on badge.
     const badgeEl = shadow.querySelector(".badge") as HTMLElement | null;
     if (badgeEl) {
       badgeEl.addEventListener("click", async (e) => {
@@ -1781,7 +1781,7 @@ export default function Overlay({ serverUrl }: VisualEditOverlayProps = {}) {
           }
         } catch (err) {
           showResult(
-            `Network error: ${(err as Error).message}. Is visual-edit server running on :7790?`,
+            `Network error: ${(err as Error).message}. Is visual-editor server running on :7790?`,
             "error",
           );
         }
@@ -2411,7 +2411,7 @@ export default function Overlay({ serverUrl }: VisualEditOverlayProps = {}) {
       }
     }
 
-    (window as unknown as { __visualEditSpike?: object }).__visualEditSpike = {
+    (window as unknown as { __visualEditorSpike?: object }).__visualEditorSpike = {
       moveableHandleCount: () =>
         moveableContainer.querySelectorAll(".moveable-control-box").length,
       badgeText: () =>

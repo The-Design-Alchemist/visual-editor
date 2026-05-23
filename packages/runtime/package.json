@@ -1,7 +1,7 @@
 {
-  "name": "@aaqiljamal/visual-edit-runtime",
+  "name": "@aaqiljamal/visual-editor-runtime",
   "version": "0.2.0",
-  "description": "Visual-edit dev overlay. Mount in your Next.js app's layout (dev only); it talks to @aaqiljamal/visual-edit-server over localhost.",
+  "description": "Visual-edit dev overlay. Mount in your Next.js app's layout (dev only); it talks to @aaqiljamal/visual-editor-server over localhost.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -19,16 +19,16 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["visual-edit", "next", "tailwind", "css-modules", "styled-components"],
+  "keywords": ["visual-editor", "next", "tailwind", "css-modules", "styled-components"],
   "license": "MIT",
   "author": "Aaqil Jamal",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aaqiljamal/visual-edit.git",
+    "url": "https://github.com/The-Design-Alchemist/visual-editor.git",
     "directory": "packages/runtime"
   },
-  "homepage": "https://github.com/aaqiljamal/visual-edit#readme",
-  "bugs": "https://github.com/aaqiljamal/visual-edit/issues",
+  "homepage": "https://github.com/The-Design-Alchemist/visual-editor#readme",
+  "bugs": "https://github.com/The-Design-Alchemist/visual-editor/issues",
   "publishConfig": {
     "access": "public"
   },

@@ -1,10 +1,10 @@
 {
-  "name": "@aaqiljamal/visual-edit-mcp",
+  "name": "@aaqiljamal/visual-editor-mcp",
   "version": "0.2.0",
-  "description": "stdio MCP server for visual-edit — exposes 6 tools (get_selected_element, propose_change, apply_change, revert_change, apply_css_property, apply_styled_property) to Claude Code.",
+  "description": "stdio MCP server for visual-editor — exposes 6 tools (get_selected_element, propose_change, apply_change, revert_change, apply_css_property, apply_styled_property) to Claude Code.",
   "type": "module",
   "bin": {
-    "visual-edit-mcp": "bin/visual-edit-mcp.cjs"
+    "visual-editor-mcp": "bin/visual-editor-mcp.cjs"
   },
   "files": ["dist", "bin", "README.md"],
   "scripts": {
@@ -15,16 +15,16 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["visual-edit", "mcp", "claude-code"],
+  "keywords": ["visual-editor", "mcp", "claude-code"],
   "license": "MIT",
   "author": "Aaqil Jamal",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aaqiljamal/visual-edit.git",
+    "url": "https://github.com/The-Design-Alchemist/visual-editor.git",
     "directory": "packages/mcp"
   },
-  "homepage": "https://github.com/aaqiljamal/visual-edit#readme",
-  "bugs": "https://github.com/aaqiljamal/visual-edit/issues",
+  "homepage": "https://github.com/The-Design-Alchemist/visual-editor#readme",
+  "bugs": "https://github.com/The-Design-Alchemist/visual-editor/issues",
   "publishConfig": {
     "access": "public"
   },
@@ -36,7 +36,7 @@
     "zod": "^3.25.0"
   },
   "devDependencies": {
-    "@aaqiljamal/visual-edit-server": "0.2.0",
+    "@aaqiljamal/visual-editor-server": "0.2.0",
     "@types/node": "^22.10.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",

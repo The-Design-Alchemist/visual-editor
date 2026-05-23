@@ -15,7 +15,7 @@ const TOKEN = "origin-test-token-1234";
 sessionToken.setInMemory(TOKEN);
 
 before(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-edit-origin-"));
+  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-editor-origin-"));
   server = createServer({
     workspaceRoot: workspace,
     sessionToken,

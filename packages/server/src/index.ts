@@ -1,4 +1,4 @@
-// Public entry point for @aaqiljamal/visual-edit-server.
+// Public entry point for @aaqiljamal/visual-editor-server.
 // Anything imported here is part of the package's stable API.
 // Submodule deep-imports (e.g. ./src/fs/applyToFile.ts) are NOT supported.
 

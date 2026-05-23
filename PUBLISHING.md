@@ -27,34 +27,20 @@ curl -s https://registry.npmjs.org/-/user/org.couchdb.user:aaqiljamal | jq .
 
 ### 2. GitHub repo
 
-The `gh` CLI on this machine is currently authed as **`The-Design-Alchemist`**,
-not `aaqiljamal`. Either:
-
-**Option A** — switch the auth so the repo lands under aaqiljamal:
+The empty repo at `github.com/The-Design-Alchemist/visual-editor` was
+created manually in the browser. Add it as the remote and push:
 
 ```bash
-gh auth login                # pick your aaqiljamal account
-gh auth status               # verify "Active account: true" is aaqiljamal
+git remote add origin https://github.com/The-Design-Alchemist/visual-editor.git
+git push -u origin main
 ```
 
-**Option B** — publish under The-Design-Alchemist:
+Confirm `gh auth status` shows `The-Design-Alchemist` as the active account
+before any subsequent `gh` commands (CI secrets, releases).
 
-Update every `repository.url` field in the 5 package.json files + root
-package.json + README.md + INSTALL.md to point at
-`https://github.com/The-Design-Alchemist/visual-edit.git`. Search-and-replace
-on `aaqiljamal/visual-edit` → `The-Design-Alchemist/visual-edit`.
-
-**Option C** — create manually in the browser at github.com/new, then push.
-
-Once the auth is settled and there are no uncommitted changes:
-
-```bash
-gh repo create aaqiljamal/visual-edit \
-  --public \
-  --description "Visual gestures → deterministic source edits for Next.js. Tailwind, CSS Modules, styled-components." \
-  --source=. \
-  --push
-```
+After the first push, set repo topics on the GitHub web UI's **About** panel
+(click the ⚙ next to "About" on the repo page):
+`nextjs tailwindcss css-modules styled-components mcp claude-code react ast dev-tools visual-editor`
 
 ### 3. NPM_TOKEN as a GitHub secret
 
@@ -130,7 +116,7 @@ Verify on each `npm publish`:
 
 ```bash
 # After all 5 are up:
-npm view @aaqiljamal/visual-edit-next
+npm view @aaqiljamal/visual-editor-next
 ```
 
 ### 4. Subsequent releases — through changesets
@@ -157,10 +143,10 @@ npx create-next-app@latest --typescript --tailwind --app --no-src-dir \
   --turbopack --import-alias "@/*" --no-eslint --use-npm .
 
 npm install --save-dev \
-  @aaqiljamal/visual-edit-next \
-  @aaqiljamal/visual-edit-babel-plugin
+  @aaqiljamal/visual-editor-next \
+  @aaqiljamal/visual-editor-babel-plugin
 
-npx visual-edit-init
+npx visual-editor-init
 # Manually add <VisualEditOverlay /> to app/layout.tsx (the init prints the snippet)
 
 npm run dev
@@ -182,7 +168,7 @@ If a published version is broken:
 ```bash
 # Deprecate without unpublishing (you have 72h to unpublish; after that,
 # you have to publish a new version)
-npm deprecate @aaqiljamal/visual-edit-next@0.2.0 "broken — use 0.2.1"
+npm deprecate @aaqiljamal/visual-editor-next@0.2.0 "broken — use 0.2.1"
 ```
 
 Then bump (changeset + push) and republish.
@@ -194,6 +180,6 @@ Then bump (changeset + push) and republish.
 | Symptom | Fix |
 |---|---|
 | `403 Forbidden — Public registration not allowed for this scope` | First publish needs `--access=public`. Verify `publishConfig.access: "public"` is in each package.json (it is). |
-| `404 Not Found — @aaqiljamal/visual-edit-server` (from a consumer) | Publish order matters. babel-plugin + runtime + server must be on npm before `next` resolves them. |
+| `404 Not Found — @aaqiljamal/visual-editor-server` (from a consumer) | Publish order matters. babel-plugin + runtime + server must be on npm before `next` resolves them. |
 | `ENOENT: no such file dist/index.js` | tsup didn't run before publish. Either run `npm run build` manually, or trust `prepublishOnly` (which `npm publish` invokes). |
 | `error: missing types entry "./dist/index.d.ts"` | tsup's dts emit failed silently — usually a TS strictness error in source. Run `npm run build` standalone in that package to see the real error. |

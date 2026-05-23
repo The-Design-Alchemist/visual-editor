@@ -2,7 +2,7 @@
 description: Apply or review the visual edit the user has staged in the browser overlay
 ---
 
-You have access to the `visual-edit` MCP server, which exposes five tools (v0.2):
+You have access to the `visual-editor` MCP server, which exposes five tools (v0.2):
 
 - `get_selected_element` — returns what the user clicked on in the browser overlay (file, line, col, className, tag, component name, instance count). Returns `selection: null` if nothing is currently selected.
 - `propose_change` — given `{file, line, col, before, after, attribute?}`, returns the unified diff WITHOUT writing. Default `attribute` is "className"; pass "src"/"href"/"alt"/etc. for other attributes.
@@ -17,7 +17,7 @@ Follow this flow:
 3. Call `propose_change` with `{file, line, col, before: <old token>, after: <new token>}`. Print the unified diff back to the user.
 4. Ask "Apply this?". On yes, call `apply_change` with the same arguments. On no, stop.
 5. If the apply returns a refusal (e.g. `reason: "dynamic-call-expression"`), surface the structured reason verbatim — don't try to work around it. v0.1's writer only mutates static string literals; dynamic className contexts (`cn`/`clsx`/`twMerge`/`cva`/spread/template-literal/conditional) are refused by design (Principle 1).
-6. If the apply succeeds, mention that the user can `/visual-edit undo` (or call `revert_change` directly) to undo.
+6. If the apply succeeds, mention that the user can `/visual-editor undo` (or call `revert_change` directly) to undo.
 
 If the user says "undo" or asks to revert, call `revert_change` with no arguments to undo the most-recent apply.
 

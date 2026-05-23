@@ -11,7 +11,7 @@ import { SessionToken } from "../../server/src/state/auth.ts";
 import type { Server } from "node:http";
 
 // We boot a local HTTP server in-process (random port) and point the MCP
-// child at it via VISUAL_EDIT_SERVER_URL. This way the smoke test doesn't
+// child at it via VISUAL_EDITOR_SERVER_URL. This way the smoke test doesn't
 // require the CLI to be running ambiently.
 
 let httpServer: Server;
@@ -47,7 +47,7 @@ function sendNotification(method: string, params: object): void {
 }
 
 before(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-edit-mcp-test-"));
+  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-editor-mcp-test-"));
   httpServer = createServer({
     workspaceRoot: workspace,
     currentSelection: selection,
@@ -72,8 +72,8 @@ before(async () => {
     {
       env: {
         ...process.env,
-        VISUAL_EDIT_SERVER_URL: httpUrl,
-        VISUAL_EDIT_TOKEN: TEST_TOKEN,
+        VISUAL_EDITOR_SERVER_URL: httpUrl,
+        VISUAL_EDITOR_TOKEN: TEST_TOKEN,
       },
       stdio: ["pipe", "pipe", "pipe"],
     },
@@ -125,7 +125,7 @@ after(async () => {
 
 // ---------------------------------------------------------------------------
 
-test("tools/list returns the visual-edit tools (6 in v0.2 B3a)", async () => {
+test("tools/list returns the visual-editor tools (6 in v0.2 B3a)", async () => {
   const result = (await sendRpc("tools/list", {})) as {
     tools: Array<{ name: string; description: string }>;
   };

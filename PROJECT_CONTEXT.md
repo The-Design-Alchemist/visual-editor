@@ -71,13 +71,13 @@ The target loop, end to end:
 
 ```
 [1] dev runs `next dev` as normal
-[2] visual-edit auto-loads in dev mode (one <Script> in app/layout.tsx)
+[2] visual-editor auto-loads in dev mode (one <Script> in app/layout.tsx)
 [3] dev hovers over a button → sees Figma-style spacing/padding/margin indicators
 [4] dev drags a handle to nudge padding from p-4 to p-6
     → inline style applies LIVE in the browser
     → nothing is written to disk yet
 [5] dev iterates: undo, redo, try p-5, try p-8, settle on p-6
-[6] dev clicks "Apply" (or runs /visual-edit in Claude Code)
+[6] dev clicks "Apply" (or runs /visual-editor in Claude Code)
     → MCP server hands Claude Code:
       - exact file path
       - exact line:column
@@ -210,7 +210,7 @@ A single source location (`Card.tsx:42:14`) very often renders N DOM instances (
 │  │  User's Next.js app (untouched)                          │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  visual-edit runtime (loaded via <Script> in dev only)   │  │
+│  │  visual-editor runtime (loaded via <Script> in dev only)   │  │
 │  │  ├── bippy: walk Fiber tree, read _debugSource           │  │
 │  │  ├── Shadow DOM overlay (Preact)                          │  │
 │  │  │   ├── selection.ts: hit testing                        │  │
@@ -225,7 +225,7 @@ A single source location (`Card.tsx:42:14`) very often renders N DOM instances (
                              │ (localhost:7790)
                              │
 ┌────────────────────────────▼────────────────────────────────────┐
-│  Local server (Node, started by `visual-edit start`)            │
+│  Local server (Node, started by `visual-editor start`)            │
 │  ├── http.ts: REST endpoints                                     │
 │  ├── ws.ts: live state push                                      │
 │  ├── ast/                                                        │

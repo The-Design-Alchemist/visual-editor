@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 "use strict";
 /**
- * Launcher for `npx visual-edit-mcp`. The MCP server is shipped pre-built
+ * Launcher for `npx visual-editor-mcp`. The MCP server is shipped pre-built
  * in dist/server.js (ESM); we delegate to it directly.
  */
 const path = require("node:path");
@@ -16,6 +16,6 @@ const child = spawn(
 );
 child.on("exit", (code) => process.exit(code ?? 0));
 child.on("error", (err) => {
-  process.stderr.write(`visual-edit-mcp: ${err.message}\n`);
+  process.stderr.write(`visual-editor-mcp: ${err.message}\n`);
   process.exit(1);
 });

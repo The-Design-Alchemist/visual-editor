@@ -41,7 +41,7 @@ The original recommendations below remain useful as **library survey** (recast, 
 3. **Turbopack is the default bundler in Next.js 16, but Babel still works.** Per the Next.js 16 blog (October 21, 2025): *"more than 50% of development sessions and 20% of production builds on Next.js 15.3+ are already running on Turbopack"* with *"2–5× faster production builds [and] Up to 10× faster Fast Refresh."* `.babelrc`/`babel.config.js` are still picked up by Turbopack's webpack-loader compatibility layer, and Babel runs alongside SWC at the cost of dev-mode performance. `experimental.swcPlugins` is still experimental and has known crashes under Turbopack (vercel/next.js #74611, #78156), so don't bet the MVP on it. The current latest is Next.js 16.2 (March 18, 2026), which adds ~400% faster `next dev` startup over 16.0.
 4. **Drag/resize is a one-library decision: use `react-moveable`.** It already implements 8-point handles, snapping, rotation, group selection, and Figma-style guideline snap. `interact.js` is lower-level and you'd reinvent half of Moveable's snap engine.
 5. **Deterministic AST writes are best done with `recast` + `@babel/parser` + `@babel/traverse`, not jscodeshift.** Recast preserves whitespace and quote style on the unchanged parts of the file; jscodeshift wraps recast but adds an opinionated collection API you don't need for single-attribute edits. For Tailwind className parsing, study `prettier-plugin-tailwindcss` — it already handles class literals, template literals, and `clsx`/`cn`/`cva` function calls.
-6. **MCP integration is genuinely simple.** A stdio server using `@modelcontextprotocol/sdk` is ~100 lines of TypeScript. Register it with `claude mcp add visual-edit -- node ./mcp-server.js`. Keep the surface to ~4 tools so you don't burn Claude's context budget.
+6. **MCP integration is genuinely simple.** A stdio server using `@modelcontextprotocol/sdk` is ~100 lines of TypeScript. Register it with `claude mcp add visual-editor -- node ./mcp-server.js`. Keep the surface to ~4 tools so you don't burn Claude's context budget.
 
 ---
 
@@ -288,7 +288,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 
-const server = new McpServer({ name: 'visual-edit', version: '0.1.0' })
+const server = new McpServer({ name: 'visual-editor', version: '0.1.0' })
 
 server.registerTool('get_selected_element', {
   description: 'Returns the element currently selected in the browser overlay (file, line, col, component, className, computed styles).',
@@ -320,9 +320,9 @@ await server.connect(new StdioServerTransport())
 **Register with Claude Code:**
 
 ```bash
-claude mcp add visual-edit --transport stdio -- node /abs/path/mcp-server.js
+claude mcp add visual-editor --transport stdio -- node /abs/path/mcp-server.js
 # project-scoped (committed in .mcp.json):
-claude mcp add visual-edit --scope project -- node ./mcp-server.js
+claude mcp add visual-editor --scope project -- node ./mcp-server.js
 ```
 
 Verify in-session with `/mcp`.
@@ -331,13 +331,13 @@ Verify in-session with `/mcp`.
 
 **Context budget hygiene.** Per Anthropic's MCP guidance, each tool's description is shipped to the model on every turn. Keep descriptions to one sentence, keep input schemas tight, and don't expose ten variants of the same tool. Four tools is the sweet spot.
 
-**Optional `/visual-edit` slash command.** Drop a markdown file in `.claude/commands/visual-edit.md`:
+**Optional `/visual-editor` slash command.** Drop a markdown file in `.claude/commands/visual-editor.md`:
 
 ```md
 ---
 description: Apply the currently selected visual edit
 ---
-Use the `visual-edit` MCP server. Call `get_selected_element`, show me the proposed diff via `propose_change`, then apply it via `apply_change` only after I confirm.
+Use the `visual-editor` MCP server. Call `get_selected_element`, show me the proposed diff via `propose_change`, then apply it via `apply_change` only after I confirm.
 ```
 
 ### 7. The Live-Preview / Commit Loop
@@ -393,7 +393,7 @@ All version pins below are current as of May 2026; bump if newer is available wh
 **Repository layout (monorepo, but you can flatten if you prefer):**
 
 ```
-visual-edit/
+visual-editor/
 ├── packages/
 │   ├── runtime/                  # browser-side, loaded via <Script>
 │   │   ├── src/
@@ -417,7 +417,7 @@ visual-edit/
 │   │   │   │   ├── className.ts  # token swap with cn()/clsx() support
 │   │   │   │   └── write.ts      # safe write w/ conflict detection
 │   │   │   ├── watcher.ts        # chokidar, debounce
-│   │   │   └── cli.ts            # `visual-edit start`
+│   │   │   └── cli.ts            # `visual-editor start`
 │   │   └── package.json
 │   └── mcp/                      # MCP stdio server
 │       ├── src/server.ts
@@ -447,12 +447,12 @@ visual-edit/
 - `npx create-next-app@latest examples/next-16-tailwind --tailwind --app --typescript`. This will scaffold Next.js 16.2 by default. Confirm React 19, Turbopack default.
 - Create `packages/runtime`. In `src/index.ts`, attach a `mousemove` listener on `document.body`, call `document.elementFromPoint(x, y)`, walk to the React fiber via `__reactFiber$…` key lookup, read `_debugSource` (fall back to `memoizedProps.__source`), render a fixed-position label showing `Button.tsx:42:14`.
 - Wire in `bippy` (`import { traverseFiber } from 'bippy'`) so you can walk up to find the nearest component.
-- In the example app, add `<Script src="/visual-edit-runtime.js" strategy="beforeInteractive" />` inside `if (process.env.NODE_ENV === 'development')`.
+- In the example app, add `<Script src="/visual-editor-runtime.js" strategy="beforeInteractive" />` inside `if (process.env.NODE_ENV === 'development')`.
 - **Pitfall:** React 19.2 has removed `__source`. Verify with `console.log(fiber._debugSource)` that you're actually getting locations; if not, downgrade the example to React 19.0 for now or use the build-time `data-oid` fallback.
 
 **Milestone 2 (Days 3–4): Overlay UI.**
 
-- Move overlay rendering into a Shadow DOM root attached to a `<visual-edit-anchor>` custom element appended to `document.body` with `z-index: 2147483647`. Mount Preact inside.
+- Move overlay rendering into a Shadow DOM root attached to a `<visual-editor-anchor>` custom element appended to `document.body` with `z-index: 2147483647`. Mount Preact inside.
 - Implement spacing indicators: read `getBoundingClientRect` and `getComputedStyle` on hover, draw outline + padding (inner, green) + margin (outer, orange) with px labels.
 - Multi-select: shift-click toggles selection set. Distance measure: holding Alt while a single element is selected and hovering another renders four labelled lines.
 - **Pitfall:** Don't use React for the overlay — if the host app uses React 19 and you use React too, the DevTools hook will receive two renderer registrations. Stagewise patches `@headlessui/react` for this reason. Use Preact or Solid.
@@ -478,8 +478,8 @@ visual-edit/
 
 - Build `packages/mcp` with the four tools above.
 - Test with MCP Inspector: `npx @modelcontextprotocol/inspector node ./packages/mcp/dist/server.js`.
-- Register with Claude Code locally: `claude mcp add visual-edit -- node $(pwd)/packages/mcp/dist/server.js`. Verify `/mcp` shows it as connected.
-- Add a slash command at `.claude/commands/visual-edit.md`.
+- Register with Claude Code locally: `claude mcp add visual-editor -- node $(pwd)/packages/mcp/dist/server.js`. Verify `/mcp` shows it as connected.
+- Add a slash command at `.claude/commands/visual-editor.md`.
 - End-to-end demo: drag a button's padding in the browser, run `claude` in another terminal, ask "apply my pending visual edits and explain the diff." Verify Claude reads `get_selected_element`, proposes, applies.
 - **Pitfall:** For stdio MCP servers, never `console.log` anywhere in the server process — it corrupts JSON-RPC framing on stdout. Use `console.error` for diagnostics (stderr is fine).
 
@@ -487,7 +487,7 @@ visual-edit/
 
 - Alignment guides while dragging (compare edges to siblings within 4 px).
 - Padding "inner edge" handles like Figma (drag the inside of the padding band to adjust just that side).
-- Persistent undo history (file-backed in `.visual-edit/history.json`).
+- Persistent undo history (file-backed in `.visual-editor/history.json`).
 - Error states: file not found, JSX node not found at `(line, col)`, parse errors, conflict detection UI.
 - Component label badge on hover showing the React display name (read from `fiber.type.displayName ?? fiber.type.name`).
 - Toggle hotkey (Ctrl/Cmd+E) to enable/disable the entire overlay.
@@ -506,7 +506,7 @@ visual-edit/
 | **recast / @babel/parser / @babel/traverse** | The canonical format-preserving AST round-trip; the egghead.io "Codemods with Babel Plugins" guide is the best primer. |
 | **prettier-plugin-tailwindcss** | The `createSorter` API and the documented matrix of `class`/`className`/`clsx()`/`cn()`/template literals — the same matrix you need to mutate. |
 | **@modelcontextprotocol/sdk** (^1.29.0) | The TypeScript SDK; the `modelcontextprotocol.io/docs/develop/build-server` quickstart is concrete and short. |
-| **Lovable's "Visual Edits" blog** (lovable.dev/blog/visual-edits) | Client-side AST manipulation strategy; the `toJSXTree` traversal pattern is directly applicable. |
+| **Lovable's "Visual Edits" blog** (lovable.dev/blog/visual-editors) | Client-side AST manipulation strategy; the `toJSXTree` traversal pattern is directly applicable. |
 | **LocatorJS** (locatorjs.com) | Alternative element→source mapper; useful as a fallback if your bippy approach hits React-version snags. |
 
 ### 11. MVP vs Deferred — Be Ruthless
@@ -551,7 +551,7 @@ Spend a half-day reading source before you write a line:
 2. **bippy's source** (github.com/aidenybai/bippy) — small, focused codebase, the entire React DevTools-hook trick documented in code.
 3. **Stagewise's `toolbar/core`** (github.com/stagewise-io/stagewise) — Shadow DOM init pattern, framework adapters; AGPL-3 (note: licensing means you can read but if you fork, you must AGPL your tool too).
 4. **Onlook's architecture wiki** (docs.onlook.com/developers/architecture and the wiki on github.com/onlook-dev/onlook) — the data-oid mechanism described in the architecture wiki entry: *"Onlook is technically a browser that points to your localhost running the app. It can manipulate the DOM like a Chrome Devtool, and all these changes are injected into the page through a CSS stylesheet or DOM manipulation. The changes are non-persistent until written to code. To translate the changes to code, we inject an attribute into the DOM elements at build-time that points back to the code like a sourcemap."*
-5. **Lovable's Visual Edits engineering post** (lovable.dev/blog/visual-edits) — best writeup of client-side AST + optimistic preview; quotes their `toJSXTree` function verbatim.
+5. **Lovable's Visual Edits engineering post** (lovable.dev/blog/visual-editors) — best writeup of client-side AST + optimistic preview; quotes their `toJSXTree` function verbatim.
 6. **The 2026 DEV.to comparison** "AI Coding Tools That Actually See Your Browser" (dev.to/bluehotdog/ai-coding-tools-that-actually-see-your-browser-2026-2hoc) — surveys Frontman, Stagewise, Tidewave, Chrome DevTools MCP, Onlook with honest tradeoffs; useful for positioning.
 7. **react-grab's "For Agents" blog** (react-grab.com/blog/agent) — the local-server-as-bridge pattern with the ASCII diagram you should mentally print and pin to your monitor.
 

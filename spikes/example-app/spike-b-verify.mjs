@@ -14,21 +14,21 @@ page.on("pageerror", (err) => consoleErrors.push(`pageerror: ${err.message}`));
 
 await page.goto(url, { waitUntil: "networkidle" });
 await page.waitForFunction(
-  () => document.body.dataset.visualEditMounted === "true",
+  () => document.body.dataset.visualEditorMounted === "true",
   null,
   { timeout: 5000 },
 );
 
 const beforeClick = await page.evaluate(() => {
-  const spike = (window).__visualEditSpike;
-  const anchor = document.querySelector("visual-edit-anchor");
+  const spike = (window).__visualEditorSpike;
+  const anchor = document.querySelector("visual-editor-anchor");
   const hookKeys = Object.keys(
     window.__REACT_DEVTOOLS_GLOBAL_HOOK__?.renderers ?? {},
   );
   return {
     hasAnchor: !!anchor,
     shadowRootAccessible: !!anchor?.shadowRoot,
-    mounted: document.body.dataset.visualEditMounted === "true",
+    mounted: document.body.dataset.visualEditorMounted === "true",
     moveableHandlesBeforeClick: spike?.moveableHandleCount?.() ?? -1,
     badgeText: spike?.badgeText?.() ?? null,
     badgeColor: spike?.badgeColor?.() ?? null,
@@ -41,7 +41,7 @@ await page.click("h1");
 await page.waitForTimeout(500);
 
 const afterClick = await page.evaluate(() => {
-  const spike = (window).__visualEditSpike;
+  const spike = (window).__visualEditorSpike;
   return {
     moveableHandlesAfterClick: spike?.moveableHandleCount?.() ?? -1,
   };

@@ -17,7 +17,7 @@ const TEST_TOKEN = "test-token-deadbeef-cafe-0000";
 sessionToken.setInMemory(TEST_TOKEN);
 
 before(async () => {
-  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-edit-test-"));
+  workspace = await fs.mkdtemp(path.join(os.tmpdir(), "visual-editor-test-"));
   server = createServer({ workspaceRoot: workspace, recentApplies, sessionToken });
   await new Promise<void>((resolve) => {
     server.listen(0, "127.0.0.1", () => resolve());

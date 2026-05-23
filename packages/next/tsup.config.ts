@@ -14,8 +14,8 @@ export default defineConfig([
     external: [
       "react",
       "next",
-      "@aaqiljamal/visual-edit-runtime",
-      "@aaqiljamal/visual-edit-server",
+      "@aaqiljamal/visual-editor-runtime",
+      "@aaqiljamal/visual-editor-server",
     ],
   },
   {
@@ -26,8 +26,8 @@ export default defineConfig([
     sourcemap: true,
     external: [
       "next",
-      "@aaqiljamal/visual-edit-runtime",
-      "@aaqiljamal/visual-edit-server",
+      "@aaqiljamal/visual-editor-runtime",
+      "@aaqiljamal/visual-editor-server",
     ],
   },
 ]);

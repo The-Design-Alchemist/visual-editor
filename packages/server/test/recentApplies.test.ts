@@ -6,7 +6,7 @@ import * as path from "node:path";
 import { RecentApplies } from "../src/state/recentApplies.ts";
 
 async function tmpFile(name: string): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "visual-edit-recent-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "visual-editor-recent-"));
   return path.join(dir, name);
 }
 

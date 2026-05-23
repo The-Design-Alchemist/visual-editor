@@ -31,11 +31,11 @@ for (let i = 0; i < args.length; i++) {
   } else if (arg === "--help" || arg === "-h") {
     process.stdout.write(
       [
-        "visual-edit server — local HTTP server that wraps deterministic",
+        "visual-editor server — local HTTP server that wraps deterministic",
         "className AST mutations behind /apply and /propose endpoints.",
         "",
         "Usage:",
-        "  visual-edit-server [--port 7790] [--workspace .]",
+        "  visual-editor-server [--port 7790] [--workspace .]",
         "                     [--allow-origin http://localhost:3000 ...]",
         "",
         "Endpoints:",
@@ -57,7 +57,7 @@ const sessionToken = new SessionToken();
 const token = await sessionToken.load(workspaceRoot);
 
 const recentApplies = new RecentApplies();
-await recentApplies.load(path.join(workspaceRoot, ".visual-edit", "history.json"));
+await recentApplies.load(path.join(workspaceRoot, ".visual-editor", "history.json"));
 
 const server = createServer({
   workspaceRoot,
@@ -73,10 +73,10 @@ server.listen(port, "127.0.0.1", () => {
       ? "any (configure --allow-origin to restrict)"
       : allowedOrigins.join(", ");
   process.stdout.write(
-    `visual-edit server listening on http://127.0.0.1:${actualPort}\n` +
+    `visual-editor server listening on http://127.0.0.1:${actualPort}\n` +
       `  workspace: ${workspaceRoot}\n` +
       `  allowed origins: ${originSummary}\n` +
-      `  session token: ${token.slice(0, 8)}… (written to ${path.join(workspaceRoot, ".visual-edit", "session.json")})\n`,
+      `  session token: ${token.slice(0, 8)}… (written to ${path.join(workspaceRoot, ".visual-editor", "session.json")})\n`,
   );
 });
 

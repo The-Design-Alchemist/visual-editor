@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { VisualEditOverlay } from "@aaqiljamal/visual-edit-next";
+import { VisualEditOverlay } from "@aaqiljamal/visual-editor-next";
 import StyledRegistry from "./lib/StyledRegistry";
 
 const geistSans = Geist({

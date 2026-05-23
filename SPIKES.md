@@ -71,13 +71,13 @@ Confirmed in dev.log: `Using external babel configuration from .../babel.config.
 
 ### What was built
 
-- `spikes/example-app/app/_overlay/Overlay.tsx` — a Client Component that, on `useEffect`, creates a `<visual-edit-anchor>` custom element at `z-index: 2147483647`, attaches a **closed** Shadow DOM, renders a Preact UI badge inside (via `h` + `render` from `preact`, no JSX-runtime config needed), and instantiates a vanilla `moveable` instance (not `react-moveable`) attached to a host-page element on click.
+- `spikes/example-app/app/_overlay/Overlay.tsx` — a Client Component that, on `useEffect`, creates a `<visual-editor-anchor>` custom element at `z-index: 2147483647`, attaches a **closed** Shadow DOM, renders a Preact UI badge inside (via `h` + `render` from `preact`, no JSX-runtime config needed), and instantiates a vanilla `moveable` instance (not `react-moveable`) attached to a host-page element on click.
 - `spikes/example-app/app/layout.tsx` — imports and renders `<Overlay />` next to `{children}`.
 - `spikes/example-app/spike-b-verify.mjs` — a Playwright headless-Chromium script that boots a real browser, mounts the page, and asserts on:
   1. The custom element exists.
-  2. `document.body.dataset.visualEditMounted === "true"` (overlay's useEffect ran).
+  2. `document.body.dataset.visualEditorMounted === "true"` (overlay's useEffect ran).
   3. `anchor.shadowRoot` is `null` from page JS (closed mode is opaque).
-  4. A self-test hook exposed on `window.__visualEditSpike` reports the Preact-rendered badge text/color and the Moveable handle count inside the (otherwise-opaque) shadow.
+  4. A self-test hook exposed on `window.__visualEditorSpike` reports the Preact-rendered badge text/color and the Moveable handle count inside the (otherwise-opaque) shadow.
 
 ### Library choice — vanilla `moveable` vs `react-moveable`
 
@@ -92,10 +92,10 @@ Confirmed functional. No runtime aliases needed in `next.config.ts`.
 
 | Check | Expected | Observed | Status |
 |---|---|---|---|
-| `<visual-edit-anchor>` exists in DOM | yes | yes | ✓ |
-| `body.dataset.visualEditMounted === "true"` | yes (useEffect ran) | yes | ✓ |
+| `<visual-editor-anchor>` exists in DOM | yes | yes | ✓ |
+| `body.dataset.visualEditorMounted === "true"` | yes (useEffect ran) | yes | ✓ |
 | `anchor.shadowRoot` from page JS | `null` (closed mode opaque) | `null` | ✓ |
-| Preact rendered the badge inside shadow | badge text `"visual-edit on"` | matched | ✓ |
+| Preact rendered the badge inside shadow | badge text `"visual-editor on"` | matched | ✓ |
 | Shadow CSS applied (badge background) | `rgb(102, 51, 153)` (rebeccapurple) | matched | ✓ |
 | Host body color preserved | `rgb(23, 23, 23)` (Tailwind text-foreground) | matched | ✓ |
 | `__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers` count | 0 (no two-renderer conflict; Preact does not register) | 0 | ✓ |
@@ -111,7 +111,7 @@ The CSS preflight isolation result is the load-bearing one. Tailwind v4's prefli
 - We tested *click* to attach Moveable, not full drag/resize. Moveable's drag/resize logic itself is well-tested upstream — the spike risk we needed to retire was specifically the Shadow-DOM-host concern, which passed. A drag simulation can be added to the verifier later if needed.
 - The DevTools-hook count was 0 because the test runs in a stock headless Chromium with no React DevTools extension. React itself only calls `__REACT_DEVTOOLS_GLOBAL_HOOK__?.inject` if the hook exists; without the extension, neither host React 19 nor any other React copy creates the hook. So the "two renderers" problem is *latent*, not *active*, in our test. Preact still doesn't register either way — which is the relevant property — but the active two-renderer scenario only materializes when a real user has the DevTools extension open. Confirm again in a manual test before declaring final victory.
 - Moveable's handles render inside the closed Shadow DOM (we passed `moveableContainer` as the parent). Pointer-events work, but the handles can only be inspected from outside via the self-test hook. For dev-iteration of the overlay, consider gating `mode: "closed"` vs `mode: "open"` on a build flag.
-- The `<visual-edit-anchor>` element with `position: fixed; inset: 0; pointer-events: none` covers the viewport but doesn't block app interactions — confirmed because the click reached the underlying `<h1>` via `document.elementFromPoint`. This pattern works.
+- The `<visual-editor-anchor>` element with `position: fixed; inset: 0; pointer-events: none` covers the viewport but doesn't block app interactions — confirmed because the click reached the underlying `<h1>` via `document.elementFromPoint`. This pattern works.
 
 ---
 
@@ -120,7 +120,7 @@ The CSS preflight isolation result is the load-bearing one. Tailwind v4's prefli
 1. **Workspace-root path resolution.** The `data-oid` plugin uses `state.cwd`. Decide whether monorepos should produce workspace-root-relative or project-root-relative `data-oid` values. Add a test scaffold for pnpm/turborepo before relying on it.
 2. **`data-oid` payload format for production.** Spike used literal `path:line:col`. For shipping, hash + side-table is preferable for both DOM weight and refactor robustness. Pick the hashing scheme and how the side-table is delivered (build-time JSON? runtime fetch? in-memory only on the server?).
 3. **Theme-aware Tailwind snap.** Read CSS custom properties (`--spacing-*`) at runtime from `:root`, OR parse the user's `tailwind.config` / `@theme` block at server startup. Decide which.
-4. **Local server auth.** Concrete scheme: random 32-byte token in a `.visual-edit/session` file (gitignored), required as a `Authorization: Bearer ...` header on every request, plus `Access-Control-Allow-Origin` pinned to the active dev URL.
+4. **Local server auth.** Concrete scheme: random 32-byte token in a `.visual-editor/session` file (gitignored), required as a `Authorization: Bearer ...` header on every request, plus `Access-Control-Allow-Origin` pinned to the active dev URL.
 5. **MCP `get_selected_element` shape.** Split into `summary` (default: source, className, component name, data-oid, instance-count) and `detail` (opt-in: computed styles by requested property list). Keep base payload under ~300 tokens.
 6. **Manual DevTools-hook conflict check.** Open a real Chrome instance with React DevTools installed, load the spike app, confirm no renderer-count warnings and the extension can still inspect the host's React 19 tree normally.
 

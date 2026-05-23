@@ -1,15 +1,15 @@
 /**
- * Web Request handler for visual-edit, mounted as a Next.js catchall
+ * Web Request handler for visual-editor, mounted as a Next.js catchall
  * Route Handler. Users add ONE file:
  *
- *   app/api/visual-edit/[...path]/route.ts
+ *   app/api/visual-editor/[...path]/route.ts
  *   ──────────────────────────────────────
- *   export { GET, POST, DELETE } from "@aaqiljamal/visual-edit-next/route";
+ *   export { GET, POST, DELETE } from "@aaqiljamal/visual-editor-next/route";
  *
  * The AST mutation logic runs in-process with the user's Next dev server.
  * No separate port, no separate process, no CORS dance, no bearer token.
  *
- * In production we 404 every request: visual-edit is dev-only by design.
+ * In production we 404 every request: visual-editor is dev-only by design.
  */
 import * as path from "node:path";
 import {
@@ -24,7 +24,7 @@ import {
   RecentApplies,
   CurrentSelection,
   type Selection,
-} from "@aaqiljamal/visual-edit-server";
+} from "@aaqiljamal/visual-editor-server";
 
 // Module-level state. Survives across Route Handler invocations within
 // the same Next dev server process. RecentApplies persists to disk, so
@@ -37,7 +37,7 @@ async function ensureStateLoaded(): Promise<string> {
   const workspaceRoot = process.cwd();
   if (!stateLoaded) {
     await recentApplies.load(
-      path.join(workspaceRoot, ".visual-edit", "history.json"),
+      path.join(workspaceRoot, ".visual-editor", "history.json"),
     );
     stateLoaded = true;
   }
