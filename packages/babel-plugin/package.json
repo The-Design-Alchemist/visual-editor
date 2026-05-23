@@ -12,7 +12,7 @@
   "author": "Aaqil Jamal",
   "repository": {
     "type": "git",
-    "url": "https://github.com/The-Design-Alchemist/visual-editor.git",
+    "url": "git+https://github.com/The-Design-Alchemist/visual-editor.git",
     "directory": "packages/babel-plugin"
   },
   "homepage": "https://github.com/The-Design-Alchemist/visual-editor#readme",

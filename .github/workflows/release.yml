@@ -1,9 +1,8 @@
 name: Release
 
-# Manual trigger only until the first manual publish is done + NPM_TOKEN is
-# configured. After that, switch back to `push: branches: [main]` to enable
-# the auto-version-PR + auto-publish flow via changesets/action.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
