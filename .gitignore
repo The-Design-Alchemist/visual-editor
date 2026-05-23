@@ -43,7 +43,5 @@ playwright-report/
 playwright/.cache/
 test-results/
 
-# Changesets (keep config, ignore working files)
-.changeset/*.md
-!.changeset/README.md
-!.changeset/config.json
+# Changesets — changeset markdown files MUST be committed; the
+# `changesets/action` workflow reads them on each push to decide what to bump.
