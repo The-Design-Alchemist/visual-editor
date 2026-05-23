@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Next.js / framework caches
+.next/
+.turbo/
+.cache/
+
+# visual-edit local state (history.json)
+.visual-edit/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Per-machine Claude Code settings (commit .claude/commands/, not local config)
+.claude/settings.local.json
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+coverage/
+playwright-report/
+playwright/.cache/
+test-results/
+
+# Changesets (keep config, ignore working files)
+.changeset/*.md
+!.changeset/README.md
+!.changeset/config.json

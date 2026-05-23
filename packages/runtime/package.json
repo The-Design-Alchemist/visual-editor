@@ -1,0 +1,50 @@
+{
+  "name": "@aaqiljamal/visual-edit-runtime",
+  "version": "0.2.0",
+  "description": "Visual-edit dev overlay. Mount in your Next.js app's layout (dev only); it talks to @aaqiljamal/visual-edit-server over localhost.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["visual-edit", "next", "tailwind", "css-modules", "styled-components"],
+  "license": "MIT",
+  "author": "Aaqil Jamal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aaqiljamal/visual-edit.git",
+    "directory": "packages/runtime"
+  },
+  "homepage": "https://github.com/aaqiljamal/visual-edit#readme",
+  "bugs": "https://github.com/aaqiljamal/visual-edit/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "moveable": "^0.53.0",
+    "preact": "^10.29.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  }
+}

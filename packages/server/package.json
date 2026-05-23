@@ -1,0 +1,57 @@
+{
+  "name": "@aaqiljamal/visual-edit-server",
+  "version": "0.2.0",
+  "description": "Node-side AST mutator for visual-edit: Tailwind className, CSS Modules, styled-components. Used by @aaqiljamal/visual-edit-next as a library, or standalone via the `visual-edit-server` CLI.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "visual-edit-server": "bin/visual-edit-server.cjs"
+  },
+  "files": ["dist", "bin", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "node --import tsx --test 'test/**/*.test.ts'",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["visual-edit", "tailwind", "css-modules", "styled-components", "ast"],
+  "license": "MIT",
+  "author": "Aaqil Jamal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aaqiljamal/visual-edit.git",
+    "directory": "packages/server"
+  },
+  "homepage": "https://github.com/aaqiljamal/visual-edit#readme",
+  "bugs": "https://github.com/aaqiljamal/visual-edit/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.27.0",
+    "@babel/types": "^7.27.0",
+    "@types/diff": "^7.0.2",
+    "diff": "^9.0.0",
+    "postcss": "^8.5.14",
+    "recast": "^0.23.11",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

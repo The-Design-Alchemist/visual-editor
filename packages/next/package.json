@@ -1,0 +1,61 @@
+{
+  "name": "@aaqiljamal/visual-edit-next",
+  "version": "0.2.0",
+  "description": "Visual-edit for Next.js — one install. Includes the overlay, the Babel plugin, and a Route Handler that does AST writes inside your dev process (no separate server).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./route": {
+      "types": "./dist/route.d.ts",
+      "import": "./dist/route.js"
+    }
+  },
+  "bin": {
+    "visual-edit-init": "bin/visual-edit-init.cjs"
+  },
+  "files": ["dist", "bin", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["visual-edit", "next", "tailwind", "css-modules", "styled-components"],
+  "license": "MIT",
+  "author": "Aaqil Jamal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aaqiljamal/visual-edit.git",
+    "directory": "packages/next"
+  },
+  "homepage": "https://github.com/aaqiljamal/visual-edit#readme",
+  "bugs": "https://github.com/aaqiljamal/visual-edit/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "next": ">=15.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@aaqiljamal/visual-edit-babel-plugin": "0.2.0",
+    "@aaqiljamal/visual-edit-runtime": "0.2.0",
+    "@aaqiljamal/visual-edit-server": "0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  }
+}

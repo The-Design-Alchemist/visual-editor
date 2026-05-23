@@ -1,0 +1,36 @@
+{
+  "name": "example-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@types/styled-components": "^5.1.36",
+    "@aaqiljamal/visual-edit-runtime": "file:../../packages/runtime",
+    "moveable": "^0.53.0",
+    "next": "16.2.6",
+    "preact": "^10.29.2",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "styled-components": "^6.4.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@aaqiljamal/visual-edit-babel-plugin": "file:../../packages/babel-plugin",
+    "@aaqiljamal/visual-edit-mcp": "file:../../packages/mcp",
+    "@aaqiljamal/visual-edit-next": "file:../../packages/next",
+    "@aaqiljamal/visual-edit-server": "file:../../packages/server",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "playwright": "^1.60.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

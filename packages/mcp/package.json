@@ -1,0 +1,45 @@
+{
+  "name": "@aaqiljamal/visual-edit-mcp",
+  "version": "0.2.0",
+  "description": "stdio MCP server for visual-edit — exposes 6 tools (get_selected_element, propose_change, apply_change, revert_change, apply_css_property, apply_styled_property) to Claude Code.",
+  "type": "module",
+  "bin": {
+    "visual-edit-mcp": "bin/visual-edit-mcp.cjs"
+  },
+  "files": ["dist", "bin", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node --import tsx src/server.ts",
+    "test": "node --import tsx --test --test-timeout=20000 --test-reporter=spec test/smoke.test.ts",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["visual-edit", "mcp", "claude-code"],
+  "license": "MIT",
+  "author": "Aaqil Jamal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aaqiljamal/visual-edit.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/aaqiljamal/visual-edit#readme",
+  "bugs": "https://github.com/aaqiljamal/visual-edit/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@aaqiljamal/visual-edit-server": "0.2.0",
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

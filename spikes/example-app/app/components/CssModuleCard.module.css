@@ -1,0 +1,10 @@
+.card {
+  margin-top: 1.5rem;
+  padding: 2.5rem;
+  background: #fde68a;
+  border: 1px solid #f59e0b;
+  border-radius: 0.5rem;
+  color: #78350f;
+  font-size: 0.875rem;
+  width: 12rem;
+}
