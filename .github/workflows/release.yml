@@ -49,4 +49,7 @@ jobs:
           # publish itself reads via the setup-node-generated .npmrc.
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
+          # Provenance requires npm Trusted Publishing setup
+          # (npmjs.com → package settings → Trusted Publishers). Until that's
+          # configured for each package, CI publishes plain — the token is
+          # still required and the publish is still authenticated.
