@@ -131,7 +131,9 @@ process.stdout.write("\nProject looks like a Next.js App Router app. Proceeding.
         babelFile,
         'module.exports = {\n' +
           '  presets: ["next/babel"],\n' +
-          '  plugins: ["@aaqiljamal/visual-editor-babel-plugin"],\n' +
+          '  // Resolved via Node so pnpm/yarn-pnp users don\'t need a second\n' +
+          '  // explicit install of the plugin alongside @aaqiljamal/visual-editor-next.\n' +
+          '  plugins: [require.resolve("@aaqiljamal/visual-editor-babel-plugin")],\n' +
           '};\n',
       );
     }

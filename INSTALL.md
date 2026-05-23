@@ -12,14 +12,13 @@ separate process, no extra port, no CORS dance.
 ### 1. Install
 
 ```bash
-npm install --save-dev \
-  @aaqiljamal/visual-editor-next \
-  @aaqiljamal/visual-editor-babel-plugin
+npm install --save-dev @aaqiljamal/visual-editor-next
 ```
 
 `@aaqiljamal/visual-editor-next` is a meta-package — it pulls in the overlay,
-the AST mutator, and the Babel plugin transitively. The plugin is also a
-direct devDep so `babel.config.js` can reference it by name.
+the AST mutator, and the Babel plugin transitively. The `init` script writes
+a `babel.config.js` that uses `require.resolve()` to find the plugin, so it
+works with any package manager (npm, pnpm, yarn).
 
 ### 2. Run the init script
 

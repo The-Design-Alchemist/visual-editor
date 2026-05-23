@@ -23,10 +23,7 @@ is for review and batching, not interpretation.
 ## Quick start
 
 ```bash
-npm install --save-dev \
-  @aaqiljamal/visual-editor-next \
-  @aaqiljamal/visual-editor-babel-plugin
-
+npm install --save-dev @aaqiljamal/visual-editor-next
 npx visual-editor-init
 ```
 
