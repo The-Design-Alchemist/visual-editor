@@ -209,3 +209,23 @@ The spike app has a copy at `spikes/example-app/app/lib/StyledRegistry.tsx`.
 **Refusal you didn't expect** — read the `details` text in the panel.
 Every refusal carries the exact reason; visual-editor's contract is
 "loud refusal, never silent best-effort."
+
+**Apply refuses with `file-not-found` and the path has a stray prefix**
+(e.g. `apps/web/components/Foo.tsx` instead of `components/Foo.tsx`) —
+you're in a monorepo and the Babel plugin walked up past your app's
+boundary to find a workspace marker (`.git`, `pnpm-workspace.yaml`,
+`turbo.json`, etc.). Pin the root explicitly in `babel.config.js`:
+
+```js
+module.exports = {
+  presets: ["next/babel"],
+  plugins: [
+    [require.resolve("@aaqiljamal/visual-editor-babel-plugin"), {
+      root: __dirname, // stop here; don't walk up to the workspace root
+    }],
+  ],
+};
+```
+
+For a standalone Next.js project (not in a monorepo), the bare
+`require.resolve(...)` form is enough — auto-detection works.

@@ -114,11 +114,30 @@ Inside Claude Code, `/mcp` shows 6 tools (`get_selected_element`, `propose_chang
 
 Full deferral logic in [V02_PLAN.md](./V02_PLAN.md), principles in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md).
 
+## Demo
+
+The screenshots above were captured against a shadcn/ui dashboard at
+[`examples/shadcn-demo/`](./examples/shadcn-demo). It uses the published
+packages from npm (same install your friend would do), with one extra Babel
+plugin option for monorepo path resolution. Boot it:
+
+```bash
+cd examples/shadcn-demo
+npm install
+npm run dev
+# open http://localhost:3000
+```
+
+Recreate the screenshots with `node scripts/capture-demo-screenshots.mjs`.
+
 ## Status
 
 - **129/129** server tests passing
 - **7/7** MCP smoke tests passing
-- End-to-end verified on a Next 16 / React 19 / Tailwind v4 reference app (see `spikes/example-app/`)
+- End-to-end verified on Next 16 / React 19 / Tailwind v4 — both a barebones
+  spike (`spikes/example-app/`) for edge-case coverage and a shadcn/ui
+  dashboard (`examples/shadcn-demo/`) for real-world usage
+- Published packages installed and working from a fresh `create-next-app`
 
 ## License
 
