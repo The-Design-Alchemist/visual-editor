@@ -1,2 +1,2 @@
-// Re-export the overlay under the public name used in install docs.
-export { default as VisualEditOverlay } from "./Overlay.tsx";
+export { default as VisualEditOverlay } from "./Overlay";
+export type { VisualEditOverlayProps } from "./Overlay";

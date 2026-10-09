@@ -9,11 +9,14 @@
       "@aaqiljamal/visual-editor-runtime",
       "@aaqiljamal/visual-editor-server",
       "@aaqiljamal/visual-editor-next",
-      "@aaqiljamal/visual-editor-mcp"
+      "@aaqiljamal/visual-editor-mcp",
+      "@aaqiljamal/visual-editor-vite"
     ]
   ],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["example-app"]
+  "ignore": [
+    "example-app"
+  ]
 }

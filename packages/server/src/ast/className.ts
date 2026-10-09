@@ -52,7 +52,7 @@ export type MutateClassNameRefusalReason =
 // Known classname-merger functions that combine multiple tokens at runtime.
 // We only enter the safety-analyzed mutation path for these — everything
 // else stays refused with `unknown-merger`.
-const KNOWN_MERGERS = new Set([
+export const KNOWN_MERGERS = new Set([
   "cn",
   "clsx",
   "classnames",

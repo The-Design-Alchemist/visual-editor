@@ -1,3 +1,20 @@
+# shadcn-demo
+
+shadcn/ui dashboard on Next.js 16.4 used for the README screenshots. Wired with `withVisualEditor()` in `next.config.ts` and the one-line Route Handler — no Babel config, no layout edit (overlay auto-mounts on Next ≥ 16.3).
+
+```bash
+npm install
+npm run dev      # http://localhost:3000
+```
+
+The package.json points at the published `@aaqiljamal/visual-editor-next` (^0.3.0). To run against the monorepo source instead:
+
+```bash
+npm install -D file:../../packages/next file:../../packages/runtime file:../../packages/server file:../../packages/babel-plugin
+```
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

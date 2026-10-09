@@ -142,3 +142,18 @@ Five repeats of the npmjs Trusted Publisher form. ~10 minutes total.
 | Version PR doesn't include all expected packages | Changeset markdown only mentioned the ones it bumped. Add more `"@scope/pkg": patch` lines to bump siblings. |
 | Spurious "no changesets" status check on PR | The PR doesn't include a `.changeset/*.md` file. Add one before merging, or merge as a chore that needs no version bump. |
 | Local `npm publish` works but CI doesn't | First check both env vars (`NPM_TOKEN` + `NODE_AUTH_TOKEN`) are present in the Release workflow's `env:` block. |
+
+
+## 0.3.0 release checklist (added 2026-10-09)
+
+The v0.3 work is in the tree with a changeset (`.changeset/v03-loader-vite-context.md`) that bumps all
+**six** packages (`@aaqiljamal/visual-editor-vite` is new and publishes for the first time; changesets
+handles that — `linked` already includes it).
+
+1. Commit + push → the Release workflow opens the Version PR → merge → publishes to npm.
+2. Then refresh the examples, which already declare `^0.3.0`:
+   `cd examples/shadcn-demo && npm install` and `cd examples/vite-demo && npm install` (regenerates
+   lockfiles that currently point at `file:` links from local verification). Commit.
+3. Vercel redeploys the shadcn demo from that commit; it needs 0.3.0 on npm to install.
+4. If the overlay UI changed again, recapture screenshots: `npx playwright install chromium`, start the
+   demo on 3942, `PORT=3942 node scripts/capture-demo-screenshots.mjs`.

@@ -1,7 +1,7 @@
 {
   "name": "@aaqiljamal/visual-editor-next",
   "version": "0.2.1",
-  "description": "Visual-edit for Next.js — one install. Includes the overlay, the Babel plugin, and a Route Handler that does AST writes inside your dev process (no separate server).",
+  "description": "Visual-edit for Next.js — one install. withVisualEditor() wires the SWC-compatible stamping loader + auto-mounts the overlay; a one-line Route Handler does AST writes inside your dev process.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -14,7 +14,16 @@
     "./route": {
       "types": "./dist/route.d.ts",
       "import": "./dist/route.js"
-    }
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js",
+      "require": "./dist/config.cjs"
+    },
+    "./client": {
+      "default": "./dist/client.js"
+    },
+    "./loader": "./loader.cjs"
   },
   "bin": {
     "visual-editor-init": "bin/visual-editor-init.cjs"
@@ -22,6 +31,8 @@
   "files": [
     "dist",
     "bin",
+    "templates",
+    "loader.cjs",
     "README.md"
   ],
   "scripts": {

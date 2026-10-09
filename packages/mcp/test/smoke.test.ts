@@ -125,7 +125,7 @@ after(async () => {
 
 // ---------------------------------------------------------------------------
 
-test("tools/list returns the visual-editor tools (6 in v0.2 B3a)", async () => {
+test("tools/list returns the visual-editor tools (8 in v0.3)", async () => {
   const result = (await sendRpc("tools/list", {})) as {
     tools: Array<{ name: string; description: string }>;
   };
@@ -135,7 +135,9 @@ test("tools/list returns the visual-editor tools (6 in v0.2 B3a)", async () => {
     "apply_css_property",
     "apply_styled_property",
     "get_selected_element",
+    "highlight_element",
     "propose_change",
+    "resolve_pin",
     "revert_change",
   ]);
 });
@@ -163,6 +165,8 @@ test("get_selected_element returns the overlay's pushed state", async () => {
     tagName: "div",
     componentName: "Page",
     instanceCount: 1,
+    refs: [],
+    selectedAt: Date.now(),
   });
   const result = (await sendRpc("tools/call", {
     name: "get_selected_element",
@@ -269,6 +273,46 @@ test("apply_change refuses a dynamic className with isError + structured reason 
 
   // File unchanged.
   assert.equal(await fs.readFile(fixture, "utf8"), src);
+});
+
+test("get_selected_element also carries pins + recent edits (v0.3 context payload)", async () => {
+  selection.clear();
+  const result = (await sendRpc("tools/call", {
+    name: "get_selected_element",
+    arguments: {},
+  })) as { content: Array<{ type: string; text: string }>; isError?: boolean };
+  assert.ok(!result.isError);
+  const body = JSON.parse(result.content[0]!.text) as {
+    selection: unknown;
+    pins: unknown[];
+    recent: unknown[];
+    workspaceRoot: string;
+  };
+  assert.equal(body.selection, null);
+  assert.deepEqual(body.pins, []);
+  assert.ok(Array.isArray(body.recent));
+  assert.equal(body.workspaceRoot, workspace);
+});
+
+test("highlight_element reports delivered=false when no browser tab is listening", async () => {
+  const result = (await sendRpc("tools/call", {
+    name: "highlight_element",
+    arguments: { file: "app/page.tsx", line: 3, col: 4, label: "this one?" },
+  })) as { content: Array<{ type: string; text: string }>; isError?: boolean };
+  assert.ok(!result.isError, JSON.stringify(result));
+  const body = JSON.parse(result.content[0]!.text) as { ok: boolean; delivered: boolean };
+  assert.equal(body.ok, true);
+  assert.equal(body.delivered, false);
+});
+
+test("resolve_pin surfaces pin-not-found as a structured error", async () => {
+  const result = (await sendRpc("tools/call", {
+    name: "resolve_pin",
+    arguments: { id: "nope", resolution: "did the thing" },
+  })) as { content: Array<{ type: string; text: string }>; isError?: boolean };
+  assert.equal(result.isError, true);
+  assert.match(result.content[0]!.text, /HTTP 404/);
+  assert.match(result.content[0]!.text, /pin-not-found/);
 });
 
 test("MCP child never wrote non-JSON to stdout (contract for stdio MCP)", () => {

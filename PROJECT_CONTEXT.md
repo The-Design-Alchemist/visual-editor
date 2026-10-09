@@ -2,6 +2,8 @@
 
 > A context document for code review (Codex, Claude, or human reviewers). This explains **why** we are building this tool, **what** workflow problem it solves, **what we're explicitly not building**, and the **principles** that should guide implementation decisions. Read this before reviewing architecture or code.
 
+> **Revised 2026-10-09 (v0.3):** build-time stamping now runs as an SWC/Turbopack-compatible loader (no Babel config), component call sites are stamped separately from host elements (`data-oid-call`), the overlay carries notes/pins/copy-context for agents, and Principle 8 was relaxed from "four tools" to "small surface". See `docs/AUDIT-2026-10.md`.
+>
 > **Revised 2026-05-18 after adversarial review.** Key changes: build-time `data-oid` moved into v0.1 (Principle 6 inverted); determinism preconditions tightened (Principle 1); a new Principle 11 covers the "one source location → N DOM instances" trap; RSC *mapping* is now in v0.1, RSC *editing* stays deferred; success criteria 7 and 8 added for refusal-with-clarity and instance visibility; new Pre-Milestone Spikes section gates the build behind two specific de-risking exercises.
 
 ---
@@ -182,9 +184,9 @@ We originally planned to lean on React's `__source` JSX prop and Fiber `_debugSo
 
 Claude Code's docs are explicit: stdio servers are local processes Claude spawns and owns. Simplest lifecycle, fewest moving parts. HTTP/SSE is for remote cloud MCP servers. Our use case is local-only.
 
-### Principle 8: Four MCP tools, no more
+### Principle 8: A small MCP surface, summary-first payloads
 
-Every tool description ships to Claude on every turn. The token budget compounds. Four well-scoped tools (`get_selected_element`, `propose_change`, `apply_change`, `revert_change`) covers the full surface. Resist the temptation to add helpers.
+Every tool description ships to Claude on every turn. The token budget compounds. v0.1 shipped four tools; v0.3 has eight (`get_selected_element`, `propose_change`, `apply_change`, `revert_change`, `apply_css_property`, `apply_styled_property`, `highlight_element`, `resolve_pin`) — each added only when it unlocked a capability the others couldn't express (CSS write-back, agent→browser pointing, pin status). Keep descriptions tight, keep heavy fields (snippets) opt-in where lists are involved, and resist helpers that merely rearrange data the agent already has.
 
 ### Principle 9: Tailwind scale by default, arbitrary values as escape hatch
 

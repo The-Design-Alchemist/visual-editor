@@ -1,58 +1,45 @@
 /**
  * Web Request handler for visual-editor, mounted as a Next.js catchall
- * Route Handler. Users add ONE file:
+ * Route Handler. Users add ONE file (the init script writes it):
  *
  *   app/api/visual-editor/[...path]/route.ts
  *   ──────────────────────────────────────
  *   export { GET, POST, DELETE } from "@aaqiljamal/visual-editor-next/route";
  *
  * The AST mutation logic runs in-process with the user's Next dev server.
- * No separate port, no separate process, no CORS dance, no bearer token.
+ * No separate port, no separate process, no CORS dance, no bearer token:
+ * trust is "same origin as the dev server" (Sec-Fetch-Site / Origin vs
+ * Host), which blocks drive-by cross-site writes from other tabs.
  *
  * In production we 404 every request: visual-editor is dev-only by design.
  */
-import * as path from "node:path";
 import {
-  applyToFile,
-  type ApplyInput,
-  revertToFile,
-  type RevertInput,
-  applyCssProperty,
-  type ApplyCssPropertyInput,
-  applyStyledProperty,
-  type ApplyStyledPropertyInput,
-  RecentApplies,
-  CurrentSelection,
-  type Selection,
+  createApiContext,
+  handleApi,
+  isTrustedBrowserRequest,
+  formatSse,
+  type ApiContext,
 } from "@aaqiljamal/visual-editor-server";
+import { resolveWorkspaceRoot } from "@aaqiljamal/visual-editor-server/transform";
 
-// Module-level state. Survives across Route Handler invocations within
-// the same Next dev server process. RecentApplies persists to disk, so
-// HMR/full restarts don't lose history.
-const recentApplies = new RecentApplies();
-const currentSelection = new CurrentSelection();
-let stateLoaded = false;
+// One context per dev-server process, kept on globalThis so a re-evaluated
+// route module (HMR) reuses the same selection / pins / event hub.
+const CONTEXT_KEY = Symbol.for("@aaqiljamal/visual-editor.api-context");
 
-async function ensureStateLoaded(): Promise<string> {
-  const workspaceRoot = process.cwd();
-  if (!stateLoaded) {
-    await recentApplies.load(
-      path.join(workspaceRoot, ".visual-editor", "history.json"),
-    );
-    stateLoaded = true;
+function getContext(): ApiContext {
+  const g = globalThis as unknown as Record<symbol, ApiContext | undefined>;
+  let ctx = g[CONTEXT_KEY];
+  if (!ctx) {
+    ctx = createApiContext({
+      // Same rule the stamping loader / Babel plugin use (env > nearest
+      // workspace marker > cwd), so every id the overlay sends resolves.
+      workspaceRoot: resolveWorkspaceRoot(),
+      mode: "next-route-handler",
+      persist: true,
+    });
+    g[CONTEXT_KEY] = ctx;
   }
-  return workspaceRoot;
-}
-
-function isDev(): boolean {
-  return process.env.NODE_ENV !== "production";
-}
-
-function devOnlyOrJson(): Response | null {
-  if (!isDev()) {
-    return new Response("Not available in production", { status: 404 });
-  }
-  return null;
+  return ctx;
 }
 
 function json(status: number, body: unknown): Response {
@@ -62,268 +49,100 @@ function json(status: number, body: unknown): Response {
   });
 }
 
-function endpointFromPath(pathSegments: string[] | undefined): string {
-  return "/" + (pathSegments ?? []).join("/");
-}
+type RouteContext = { params: Promise<{ path?: string[] }> };
 
-// ---------------------------------------------------------------------------
-// GET
-// ---------------------------------------------------------------------------
-
-export async function GET(
-  req: Request,
-  context: { params: Promise<{ path?: string[] }> },
-): Promise<Response> {
-  const dev = devOnlyOrJson();
-  if (dev) return dev;
-  const workspaceRoot = await ensureStateLoaded();
-  const { path: parts } = await context.params;
-  const endpoint = endpointFromPath(parts);
-
-  if (endpoint === "/health") {
-    return json(200, { ok: true, mode: "next-route-handler" });
+async function handle(req: Request, context: RouteContext): Promise<Response> {
+  if (process.env.NODE_ENV === "production") {
+    return new Response("Not available in production", { status: 404 });
   }
-  if (endpoint === "/token") {
-    // Route Handler is same-origin — no bearer token needed. We respond
-    // 200 with null so the overlay's bootstrap doesn't log a 404.
+  const ctx = getContext();
+  const { path: parts } = await context.params;
+  const endpoint = "/" + (parts ?? []).join("/");
+  const url = new URL(req.url);
+  const method = req.method.toUpperCase();
+
+  if (endpoint !== "/health") {
+    const trust = isTrustedBrowserRequest(req.headers);
+    if (!trust.ok) {
+      return json(403, { ok: false, reason: "cross-site-request", details: trust.details });
+    }
+  }
+  if (method === "GET" && endpoint === "/token") {
+    // Same-origin Route Handler — no bearer token needed. 200 + null so the
+    // overlay's bootstrap doesn't log a 404.
     return json(200, { token: null });
   }
-  if (endpoint === "/selection") {
-    return json(200, { ok: true, selection: currentSelection.get() });
-  }
-  if (endpoint === "/recent") {
-    return json(200, { ok: true, applies: recentApplies.list() });
-  }
-  if (endpoint === "/assets") {
-    return await handleAssets(workspaceRoot);
-  }
-  return json(404, {
-    ok: false,
-    reason: "not-found",
-    details: `GET ${endpoint}`,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// POST
-// ---------------------------------------------------------------------------
-
-export async function POST(
-  req: Request,
-  context: { params: Promise<{ path?: string[] }> },
-): Promise<Response> {
-  const dev = devOnlyOrJson();
-  if (dev) return dev;
-  const workspaceRoot = await ensureStateLoaded();
-  const { path: parts } = await context.params;
-  const endpoint = endpointFromPath(parts);
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch (err) {
-    return json(400, {
-      ok: false,
-      reason: "invalid-json",
-      details: (err as Error).message,
-    });
+  if (method === "GET" && endpoint === "/events") {
+    return sse(ctx, req);
   }
 
-  if (endpoint === "/apply") {
-    return await handleMutation(body as ApplyInput, workspaceRoot, false);
-  }
-  if (endpoint === "/propose") {
-    return await handleMutation(body as ApplyInput, workspaceRoot, true);
-  }
-  if (endpoint === "/revert") {
-    const outcome = await revertToFile(
-      body as RevertInput,
-      { workspaceRoot, dryRun: false },
-      recentApplies,
-    );
-    if (outcome.ok) return json(200, { ok: true, diff: outcome.diff });
-    return json(outcome.status, {
-      ok: false,
-      reason: outcome.reason,
-      details: outcome.details,
-    });
-  }
-  if (endpoint === "/apply-css-prop") {
-    const outcome = await applyCssProperty(body as ApplyCssPropertyInput, {
-      workspaceRoot,
-      dryRun: false,
-    });
-    if (outcome.ok) {
-      return json(200, {
-        ok: true,
-        diff: outcome.diff,
-        selector: outcome.selector,
-        previousValue: outcome.previousValue,
-      });
-    }
-    return json(outcome.status, {
-      ok: false,
-      reason: outcome.reason,
-      details: outcome.details,
-    });
-  }
-  if (endpoint === "/apply-styled-prop") {
-    const outcome = await applyStyledProperty(
-      body as ApplyStyledPropertyInput,
-      { workspaceRoot, dryRun: false },
-    );
-    if (outcome.ok) {
-      return json(200, {
-        ok: true,
-        diff: outcome.diff,
-        componentName: outcome.componentName,
-        previousValue: outcome.previousValue,
-      });
-    }
-    return json(outcome.status, {
-      ok: false,
-      reason: outcome.reason,
-      details: outcome.details,
-    });
-  }
-  if (endpoint === "/selection") {
-    if (!isValidSelection(body)) {
-      return json(400, {
+  let body: unknown = undefined;
+  if (method === "POST" || method === "DELETE") {
+    const ct = (req.headers.get("content-type") ?? "").toLowerCase();
+    if (method === "POST" && !ct.includes("application/json")) {
+      return json(415, {
         ok: false,
-        reason: "invalid-input",
-        details:
-          "Body must be { file, line, col, oid, className, tagName, componentName, instanceCount }",
+        reason: "unsupported-media-type",
+        details: "POST bodies must be application/json.",
       });
     }
-    currentSelection.set(body);
-    return json(200, { ok: true });
-  }
-
-  return json(404, {
-    ok: false,
-    reason: "not-found",
-    details: `POST ${endpoint}`,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// DELETE
-// ---------------------------------------------------------------------------
-
-export async function DELETE(
-  req: Request,
-  context: { params: Promise<{ path?: string[] }> },
-): Promise<Response> {
-  const dev = devOnlyOrJson();
-  if (dev) return dev;
-  await ensureStateLoaded();
-  const { path: parts } = await context.params;
-  const endpoint = endpointFromPath(parts);
-
-  if (endpoint === "/selection") {
-    currentSelection.clear();
-    return json(200, { ok: true });
-  }
-  return json(404, {
-    ok: false,
-    reason: "not-found",
-    details: `DELETE ${endpoint}`,
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function handleMutation(
-  input: ApplyInput,
-  workspaceRoot: string,
-  dryRun: boolean,
-): Promise<Response> {
-  const outcome = await applyToFile(input, { workspaceRoot, dryRun });
-  if (outcome.ok) {
-    if (!dryRun) {
-      const beforeForBuffer =
-        outcome.previousValue ?? input.before ?? "";
-      recentApplies.push({
-        file: input.file,
-        line: input.line,
-        col: input.col,
-        before: beforeForBuffer,
-        after: input.after,
-        appliedAt: Date.now(),
-      });
-    }
-    return json(200, { ok: true, diff: outcome.diff });
-  }
-  return json(outcome.status, {
-    ok: false,
-    reason: outcome.reason,
-    details: outcome.details,
-  });
-}
-
-async function handleAssets(workspaceRoot: string): Promise<Response> {
-  const fs = await import("node:fs/promises");
-  const IMAGE_EXTS = new Set([
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".gif",
-    ".svg",
-    ".webp",
-    ".avif",
-  ]);
-  const publicDir = path.join(workspaceRoot, "public");
-
-  async function walk(dir: string, rel: string): Promise<string[]> {
-    let entries: import("node:fs").Dirent[] = [];
-    try {
-      entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return [];
-    }
-    const out: string[] = [];
-    for (const e of entries) {
-      const child = path.join(dir, e.name);
-      const childRel = rel ? `${rel}/${e.name}` : e.name;
-      if (e.isDirectory()) {
-        const sub = await walk(child, childRel);
-        out.push(...sub);
-      } else if (
-        e.isFile() &&
-        IMAGE_EXTS.has(path.extname(e.name).toLowerCase())
-      ) {
-        out.push(`/${childRel}`);
+    const text = await req.text();
+    if (text.length === 0) {
+      body = {};
+    } else {
+      try {
+        body = JSON.parse(text);
+      } catch (err) {
+        return json(400, { ok: false, reason: "invalid-json", details: (err as Error).message });
       }
     }
-    return out;
   }
 
-  try {
-    const assets = await walk(publicDir, "");
-    assets.sort();
-    return json(200, { ok: true, assets });
-  } catch (err) {
-    return json(500, {
-      ok: false,
-      reason: "assets-list-failed",
-      details: (err as Error).message,
-    });
-  }
+  const result = await handleApi(ctx, method, endpoint, body, url.searchParams);
+  return json(result.status, result.body);
 }
 
-function isValidSelection(x: unknown): x is Selection {
-  if (!x || typeof x !== "object") return false;
-  const o = x as Record<string, unknown>;
-  return (
-    typeof o.file === "string" &&
-    typeof o.line === "number" &&
-    typeof o.col === "number" &&
-    typeof o.oid === "string" &&
-    typeof o.className === "string" &&
-    typeof o.tagName === "string" &&
-    (o.componentName === null || typeof o.componentName === "string") &&
-    typeof o.instanceCount === "number"
-  );
+function sse(ctx: ApiContext, req: Request): Response {
+  const encoder = new TextEncoder();
+  let unsubscribe: () => void = () => {};
+  let heartbeat: ReturnType<typeof setInterval> | null = null;
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const push = (text: string) => {
+        try {
+          controller.enqueue(encoder.encode(text));
+        } catch {
+          /* stream already closed */
+        }
+      };
+      push(": connected\n\n");
+      unsubscribe = ctx.events.subscribe((ev) => push(formatSse(ev)));
+      heartbeat = setInterval(() => push(": ping\n\n"), 25_000);
+      req.signal.addEventListener("abort", () => {
+        unsubscribe();
+        if (heartbeat) clearInterval(heartbeat);
+        try {
+          controller.close();
+        } catch {
+          /* already closed */
+        }
+      });
+    },
+    cancel() {
+      unsubscribe();
+      if (heartbeat) clearInterval(heartbeat);
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
+
+export const GET = handle;
+export const POST = handle;
+export const DELETE = handle;

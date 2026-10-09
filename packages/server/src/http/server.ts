@@ -1,20 +1,20 @@
 import * as http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { applyToFile } from "../fs/applyToFile.ts";
-import type { ApplyInput } from "../fs/applyToFile.ts";
-import { revertToFile } from "../fs/revertToFile.ts";
-import type { RevertInput } from "../fs/revertToFile.ts";
-import { applyCssProperty } from "../fs/applyCssProperty.ts";
-import type { ApplyCssPropertyInput } from "../fs/applyCssProperty.ts";
-import { applyStyledProperty } from "../fs/applyStyledProperty.ts";
-import type { ApplyStyledPropertyInput } from "../fs/applyStyledProperty.ts";
-import { RecentApplies } from "../state/recentApplies.ts";
-import { CurrentSelection } from "../state/selection.ts";
-import type { Selection } from "../state/selection.ts";
+import {
+  createApiContext,
+  handleApi,
+  isTrustedBrowserRequest,
+  formatSse,
+  type ApiContext,
+} from "../api/core.ts";
+import type { RecentApplies } from "../state/recentApplies.ts";
+import type { CurrentSelection } from "../state/selection.ts";
+import type { PinStore } from "../api/pins.ts";
+import type { EventHub } from "../api/events.ts";
 import { SessionToken, parseBearer } from "../state/auth.ts";
 
 export type ServerOptions = {
-  /** Absolute path inside which all /apply and /propose writes are constrained. */
+  /** Absolute path inside which all writes are constrained. */
   workspaceRoot: string;
   /** Optional pre-built buffer (tests inject their own). */
   recentApplies?: RecentApplies;
@@ -27,430 +27,228 @@ export type ServerOptions = {
    * Production: pass the dev URL, e.g. `["http://localhost:3000"]`.
    */
   allowedOrigins?: readonly string[];
+  pins?: PinStore;
+  events?: EventHub;
+  /** Persist history/pins under <root>/.visual-editor. Default: only when nothing was injected. */
+  persist?: boolean;
 };
 
-export type ServerContext = {
-  options: ServerOptions;
-  recentApplies: RecentApplies;
-  currentSelection: CurrentSelection;
-  sessionToken: SessionToken;
+export type NodeHandlerOptions = {
+  ctx: ApiContext;
+  /**
+   * "token": bearer token required on everything but /health and /token —
+   *   the standalone, cross-origin server.
+   * "same-origin": trust same-origin browser requests (Sec-Fetch-Site /
+   *   Origin vs Host) — dev-server middleware (Vite) where the overlay is
+   *   served from the same origin.
+   */
+  auth: "token" | "same-origin";
+  sessionToken?: SessionToken;
+  allowedOrigins?: readonly string[];
+  /** Mount prefix to strip from req.url (e.g. "/api/visual-editor"). */
+  basePath?: string;
 };
+
+export type NodeHandler = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
+
+const MAX_BODY = 1024 * 1024;
 
 /**
  * Build (but do not start) the local HTTP server. Callers do `.listen(port)`.
  * Tests pass `port: 0` to get a random port; the CLI binds 7790.
  */
 export function createServer(options: ServerOptions): http.Server {
-  const ctx: ServerContext = {
-    options,
-    recentApplies: options.recentApplies ?? new RecentApplies(),
-    currentSelection: options.currentSelection ?? new CurrentSelection(),
-    sessionToken: options.sessionToken ?? new SessionToken(),
-  };
+  const sessionToken = options.sessionToken ?? new SessionToken();
+  const ctx = createApiContext({
+    workspaceRoot: options.workspaceRoot,
+    mode: "standalone",
+    recentApplies: options.recentApplies,
+    currentSelection: options.currentSelection,
+    pins: options.pins,
+    events: options.events,
+    persist: options.persist ?? false,
+  });
+  const handler = createNodeHandler({
+    ctx,
+    auth: "token",
+    sessionToken,
+    allowedOrigins: options.allowedOrigins,
+  });
   return http.createServer((req, res) => {
-    void handle(req, res, ctx).catch((err) => {
-      writeJson(res, 500, {
-        ok: false,
-        reason: "internal-error",
-        details: (err as Error).message,
-      });
+    void handler(req, res).catch((err) => {
+      if (!res.headersSent) {
+        writeJson(res, 500, {
+          ok: false,
+          reason: "internal-error",
+          details: (err as Error).message,
+        });
+      } else {
+        res.end();
+      }
     });
   });
 }
 
-async function handle(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: ServerContext,
-): Promise<void> {
-  // CORS — accept any localhost origin so the overlay (running on whatever
-  // port `next dev` chose) can call us. v0.1 will tighten this to the
-  // active dev URL once we have the per-session token in place.
-  const origin = req.headers.origin;
-  const allowed = ctx.options.allowedOrigins ?? [];
-  const originAllowed = allowed.length === 0 || (origin && allowed.includes(origin));
-
-  // CORS — when an allowlist is configured, only echo the actual origin if
-  // it matches. With no allowlist (v0.1 behavior), echo `*` for the spike.
-  if (allowed.length === 0) {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-  } else if (originAllowed && origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-  }
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-
-  const url = req.url ?? "/";
-
-  // /health is always open — it's a sanity ping with no surface to abuse.
-  if (req.method === "GET" && url === "/health") {
-    writeJson(res, 200, { ok: true });
-    return;
-  }
-
-  // Origin check applies to /token too. The bootstrap is the most-attacked
-  // endpoint — refusing wrong-origin requests is what closes the hole the
-  // spike left open.
-  if (!originAllowed) {
-    writeJson(res, 403, {
-      ok: false,
-      reason: "origin-not-allowed",
-      details: `Origin ${origin ?? "(missing)"} is not in the allowlist`,
-    });
-    return;
-  }
-
-  if (req.method === "GET" && url === "/token") {
-    writeJson(res, 200, { token: ctx.sessionToken.get() });
-    return;
-  }
-
-  // Everything below requires the bearer token.
-  const bearer = parseBearer(req.headers.authorization);
-  if (!ctx.sessionToken.matches(bearer)) {
-    writeJson(res, 401, {
-      ok: false,
-      reason: "unauthorized",
-      details:
-        "Include `Authorization: Bearer <token>` (fetch the token from GET /token).",
-    });
-    return;
-  }
-
-  if (req.method === "GET" && url === "/recent") {
-    // Diagnostic / introspection — the overlay can show a history list later.
-    writeJson(res, 200, { ok: true, applies: ctx.recentApplies.list() });
-    return;
-  }
-
-  if (req.method === "GET" && url === "/assets") {
-    await dispatchAssets(res, ctx);
-    return;
-  }
-
-  if (req.method === "POST" && url === "/apply") {
-    await dispatchMutation(req, res, ctx, false);
-    return;
-  }
-
-  if (req.method === "POST" && url === "/propose") {
-    await dispatchMutation(req, res, ctx, true);
-    return;
-  }
-
-  if (req.method === "POST" && url === "/revert") {
-    await dispatchRevert(req, res, ctx);
-    return;
-  }
-
-  if (req.method === "POST" && url === "/apply-css-prop") {
-    await dispatchCssProperty(req, res, ctx);
-    return;
-  }
-
-  if (req.method === "POST" && url === "/apply-styled-prop") {
-    await dispatchStyledProperty(req, res, ctx);
-    return;
-  }
-
-  if (req.method === "GET" && url === "/selection") {
-    writeJson(res, 200, {
-      ok: true,
-      selection: ctx.currentSelection.get(),
-    });
-    return;
-  }
-
-  if (req.method === "POST" && url === "/selection") {
-    await dispatchSelection(req, res, ctx);
-    return;
-  }
-
-  if (req.method === "DELETE" && url === "/selection") {
-    ctx.currentSelection.clear();
-    writeJson(res, 200, { ok: true });
-    return;
-  }
-
-  writeJson(res, 404, {
-    ok: false,
-    reason: "not-found",
-    details: `No route for ${req.method} ${url}`,
+/** Expose the API context of a server built by createServer (CLI uses it). */
+export function createStandaloneContext(options: ServerOptions): ApiContext {
+  return createApiContext({
+    workspaceRoot: options.workspaceRoot,
+    mode: "standalone",
+    recentApplies: options.recentApplies,
+    currentSelection: options.currentSelection,
+    pins: options.pins,
+    events: options.events,
+    persist: options.persist ?? true,
   });
 }
 
-async function dispatchMutation(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: ServerContext,
-  dryRun: boolean,
-): Promise<void> {
-  let body: unknown;
-  try {
-    body = await readJsonBody(req);
-  } catch (err) {
-    writeJson(res, 400, {
-      ok: false,
-      reason: "invalid-json",
-      details: (err as Error).message,
-    });
-    return;
-  }
+/**
+ * Node-style request handler shared by the standalone server and the Vite
+ * dev-server middleware. Handles trust policy, CORS (token mode), JSON
+ * parsing, SSE for /events, and delegates everything else to handleApi.
+ */
+export function createNodeHandler(opts: NodeHandlerOptions): NodeHandler {
+  const { ctx, auth } = opts;
+  const allowed = opts.allowedOrigins ?? [];
+  const basePath = opts.basePath?.replace(/\/+$/, "") ?? "";
 
-  const outcome = await applyToFile(body as ApplyInput, {
-    workspaceRoot: ctx.options.workspaceRoot,
-    dryRun,
-  });
+  return async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    let endpoint = url.pathname;
+    if (basePath && endpoint.startsWith(basePath)) endpoint = endpoint.slice(basePath.length) || "/";
+    const method = (req.method ?? "GET").toUpperCase();
 
-  if (outcome.ok) {
-    // Record only real applies — /propose is dryRun and shouldn't show up
-    // in the revert history.
-    if (!dryRun) {
-      const input = body as ApplyInput;
-      // Persist the actual previous value so undo can swap back even
-      // when the client originally sent before=null (asset picker UX).
-      const beforeForBuffer = outcome.previousValue ?? input.before ?? "";
-      ctx.recentApplies.push({
-        file: input.file,
-        line: input.line,
-        col: input.col,
-        before: beforeForBuffer,
-        after: input.after,
-        appliedAt: Date.now(),
-      });
-    }
-    writeJson(res, 200, { ok: true, diff: outcome.diff });
-    return;
-  }
-
-  writeJson(res, outcome.status, {
-    ok: false,
-    reason: outcome.reason,
-    details: outcome.details,
-  });
-}
-
-async function dispatchRevert(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: ServerContext,
-): Promise<void> {
-  let body: unknown;
-  try {
-    body = await readJsonBody(req);
-  } catch (err) {
-    writeJson(res, 400, {
-      ok: false,
-      reason: "invalid-json",
-      details: (err as Error).message,
-    });
-    return;
-  }
-
-  const outcome = await revertToFile(
-    body as RevertInput,
-    { workspaceRoot: ctx.options.workspaceRoot, dryRun: false },
-    ctx.recentApplies,
-  );
-
-  if (outcome.ok) {
-    writeJson(res, 200, { ok: true, diff: outcome.diff });
-    return;
-  }
-
-  writeJson(res, outcome.status, {
-    ok: false,
-    reason: outcome.reason,
-    details: outcome.details,
-  });
-}
-
-async function dispatchCssProperty(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: ServerContext,
-): Promise<void> {
-  let body: unknown;
-  try {
-    body = await readJsonBody(req);
-  } catch (err) {
-    writeJson(res, 400, {
-      ok: false,
-      reason: "invalid-json",
-      details: (err as Error).message,
-    });
-    return;
-  }
-  const outcome = await applyCssProperty(body as ApplyCssPropertyInput, {
-    workspaceRoot: ctx.options.workspaceRoot,
-    dryRun: false,
-  });
-  if (outcome.ok) {
-    writeJson(res, 200, {
-      ok: true,
-      diff: outcome.diff,
-      selector: outcome.selector,
-      previousValue: outcome.previousValue,
-    });
-    return;
-  }
-  writeJson(res, outcome.status, {
-    ok: false,
-    reason: outcome.reason,
-    details: outcome.details,
-  });
-}
-
-async function dispatchStyledProperty(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: ServerContext,
-): Promise<void> {
-  let body: unknown;
-  try {
-    body = await readJsonBody(req);
-  } catch (err) {
-    writeJson(res, 400, {
-      ok: false,
-      reason: "invalid-json",
-      details: (err as Error).message,
-    });
-    return;
-  }
-  const outcome = await applyStyledProperty(body as ApplyStyledPropertyInput, {
-    workspaceRoot: ctx.options.workspaceRoot,
-    dryRun: false,
-  });
-  if (outcome.ok) {
-    writeJson(res, 200, {
-      ok: true,
-      diff: outcome.diff,
-      componentName: outcome.componentName,
-      previousValue: outcome.previousValue,
-    });
-    return;
-  }
-  writeJson(res, outcome.status, {
-    ok: false,
-    reason: outcome.reason,
-    details: outcome.details,
-  });
-}
-
-async function dispatchAssets(
-  res: ServerResponse,
-  ctx: ServerContext,
-): Promise<void> {
-  const fs = await import("node:fs/promises");
-  const path = await import("node:path");
-  const IMAGE_EXTS = new Set([
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".gif",
-    ".svg",
-    ".webp",
-    ".avif",
-  ]);
-  const publicDir = path.join(ctx.options.workspaceRoot, "public");
-
-  async function walk(dir: string, rel: string): Promise<string[]> {
-    let entries: import("node:fs").Dirent[] = [];
-    try {
-      entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return [];
-    }
-    const out: string[] = [];
-    for (const e of entries) {
-      const child = path.join(dir, e.name);
-      const childRel = rel ? `${rel}/${e.name}` : e.name;
-      if (e.isDirectory()) {
-        const sub = await walk(child, childRel);
-        out.push(...sub);
-      } else if (
-        e.isFile() &&
-        IMAGE_EXTS.has(path.extname(e.name).toLowerCase())
-      ) {
-        // public/foo.png is referenced as "/foo.png" in src attributes.
-        out.push(`/${childRel}`);
+    if (auth === "token") {
+      // CORS — the standalone server is cross-origin by design (the overlay
+      // runs on whatever port the dev server chose).
+      const origin = req.headers.origin;
+      const originAllowed = allowed.length === 0 || (!!origin && allowed.includes(origin));
+      if (allowed.length === 0) {
+        res.setHeader("Access-Control-Allow-Origin", "*");
+      } else if (originAllowed && origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Vary", "Origin");
+      }
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      if (method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      if (method === "GET" && endpoint === "/health") {
+        const r = await handleApi(ctx, "GET", "/health", undefined);
+        writeJson(res, r.status, r.body);
+        return;
+      }
+      // Origin check applies to /token too — the bootstrap is the most
+      // attacked endpoint.
+      if (!originAllowed) {
+        writeJson(res, 403, {
+          ok: false,
+          reason: "origin-not-allowed",
+          details: `Origin ${origin ?? "(missing)"} is not in the allowlist`,
+        });
+        return;
+      }
+      const token = opts.sessionToken;
+      if (method === "GET" && endpoint === "/token") {
+        writeJson(res, 200, { token: token ? token.get() : null });
+        return;
+      }
+      // Everything below requires the bearer token. EventSource can't set
+      // headers, so /events may pass it as ?token=.
+      const bearer =
+        parseBearer(req.headers.authorization) ??
+        (endpoint === "/events" ? url.searchParams.get("token") : null);
+      if (!token || !token.matches(bearer)) {
+        writeJson(res, 401, {
+          ok: false,
+          reason: "unauthorized",
+          details: "Include `Authorization: Bearer <token>` (fetch the token from GET /token).",
+        });
+        return;
+      }
+    } else {
+      if (method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      if (endpoint !== "/health") {
+        const trust = isTrustedBrowserRequest({ get: (n) => req.headers[n] as string | undefined });
+        if (!trust.ok) {
+          writeJson(res, 403, { ok: false, reason: "cross-site-request", details: trust.details });
+          return;
+        }
+      }
+      if (method === "GET" && endpoint === "/token") {
+        // Same-origin transport — no bearer token needed.
+        writeJson(res, 200, { token: null });
+        return;
       }
     }
-    return out;
-  }
 
-  try {
-    const assets = await walk(publicDir, "");
-    assets.sort();
-    writeJson(res, 200, { ok: true, assets });
-  } catch (err) {
-    writeJson(res, 500, {
-      ok: false,
-      reason: "assets-list-failed",
-      details: (err as Error).message,
-    });
-  }
+    if (method === "GET" && endpoint === "/events") {
+      startSse(ctx, req, res);
+      return;
+    }
+
+    let body: unknown = undefined;
+    if (method === "POST" || method === "DELETE") {
+      const ct = String(req.headers["content-type"] ?? "");
+      if (method === "POST" && !ct.toLowerCase().includes("application/json")) {
+        writeJson(res, 415, {
+          ok: false,
+          reason: "unsupported-media-type",
+          details: "POST bodies must be application/json.",
+        });
+        return;
+      }
+      try {
+        body = await readJsonBody(req);
+      } catch (err) {
+        writeJson(res, 400, { ok: false, reason: "invalid-json", details: (err as Error).message });
+        return;
+      }
+    }
+
+    const result = await handleApi(ctx, method, endpoint, body, url.searchParams);
+    writeJson(res, result.status, result.body);
+  };
 }
 
-async function dispatchSelection(
-  req: IncomingMessage,
-  res: ServerResponse,
-  ctx: ServerContext,
-): Promise<void> {
-  let body: unknown;
-  try {
-    body = await readJsonBody(req);
-  } catch (err) {
-    writeJson(res, 400, {
-      ok: false,
-      reason: "invalid-json",
-      details: (err as Error).message,
-    });
-    return;
-  }
-  if (!isValidSelection(body)) {
-    writeJson(res, 400, {
-      ok: false,
-      reason: "invalid-input",
-      details:
-        "Body must be { file, line, col, oid, className, tagName, componentName?, instanceCount }",
-    });
-    return;
-  }
-  ctx.currentSelection.set(body);
-  writeJson(res, 200, { ok: true });
-}
-
-function isValidSelection(x: unknown): x is Selection {
-  if (!x || typeof x !== "object") return false;
-  const o = x as Record<string, unknown>;
-  return (
-    typeof o.file === "string" &&
-    typeof o.line === "number" &&
-    typeof o.col === "number" &&
-    typeof o.oid === "string" &&
-    typeof o.className === "string" &&
-    typeof o.tagName === "string" &&
-    (o.componentName === null || typeof o.componentName === "string") &&
-    typeof o.instanceCount === "number"
-  );
+function startSse(ctx: ApiContext, req: IncomingMessage, res: ServerResponse): void {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  res.write(": connected\n\n");
+  const unsubscribe = ctx.events.subscribe((ev) => {
+    res.write(formatSse(ev));
+  });
+  const heartbeat = setInterval(() => {
+    res.write(": ping\n\n");
+  }, 25_000);
+  const close = () => {
+    clearInterval(heartbeat);
+    unsubscribe();
+  };
+  req.on("close", close);
+  res.on("close", close);
 }
 
 async function readJsonBody(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
+  let total = 0;
   for await (const chunk of req as AsyncIterable<Buffer>) {
     chunks.push(chunk);
-    // Guard: refuse pathologically large bodies. JSX className mutations
-    // are small payloads — anything over 1 MB is suspicious.
-    if (chunks.reduce((n, c) => n + c.length, 0) > 1024 * 1024) {
-      throw new Error("Request body exceeds 1 MB");
-    }
+    total += chunk.length;
+    // Guard: refuse pathologically large bodies. Mutations are small
+    // payloads — anything over 1 MB is suspicious.
+    if (total > MAX_BODY) throw new Error("Request body exceeds 1 MB");
   }
   const raw = Buffer.concat(chunks).toString("utf8");
   if (raw.length === 0) return {};

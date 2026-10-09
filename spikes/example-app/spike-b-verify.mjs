@@ -12,9 +12,9 @@ page.on("console", (msg) => {
 });
 page.on("pageerror", (err) => consoleErrors.push(`pageerror: ${err.message}`));
 
-await page.goto(url, { waitUntil: "networkidle" });
+await page.goto(url, { waitUntil: "load" });
 await page.waitForFunction(
-  () => document.body.dataset.visualEditorMounted === "true",
+  () => !!document.querySelector("visual-editor-anchor[data-mounted]"),
   null,
   { timeout: 5000 },
 );
@@ -28,7 +28,7 @@ const beforeClick = await page.evaluate(() => {
   return {
     hasAnchor: !!anchor,
     shadowRootAccessible: !!anchor?.shadowRoot,
-    mounted: document.body.dataset.visualEditorMounted === "true",
+    mounted: !!document.querySelector("visual-editor-anchor[data-mounted]"),
     moveableHandlesBeforeClick: spike?.moveableHandleCount?.() ?? -1,
     badgeText: spike?.badgeText?.() ?? null,
     badgeColor: spike?.badgeColor?.() ?? null,

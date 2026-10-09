@@ -1,12 +1,16 @@
 {
   "name": "@aaqiljamal/visual-editor-mcp",
   "version": "0.2.0",
-  "description": "stdio MCP server for visual-editor — exposes 6 tools (get_selected_element, propose_change, apply_change, revert_change, apply_css_property, apply_styled_property) to Claude Code.",
+  "description": "stdio MCP server for visual-editor — 8 tools for Claude Code / Cursor / Codex: read the user's browser selection + pins with source context, propose/apply/revert deterministic edits, highlight elements in the browser, resolve pins.",
   "type": "module",
   "bin": {
     "visual-editor-mcp": "bin/visual-editor-mcp.cjs"
   },
-  "files": ["dist", "bin", "README.md"],
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -15,7 +19,11 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["visual-editor", "mcp", "claude-code"],
+  "keywords": [
+    "visual-editor",
+    "mcp",
+    "claude-code"
+  ],
   "license": "MIT",
   "author": "Aaqil Jamal",
   "repository": {
@@ -32,8 +40,8 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.0",
-    "zod": "^3.25.0"
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@aaqiljamal/visual-editor-server": "0.2.0",

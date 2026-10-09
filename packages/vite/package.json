@@ -1,0 +1,61 @@
+{
+  "name": "@aaqiljamal/visual-editor-vite",
+  "version": "0.2.0",
+  "description": "Vite plugin for visual-editor: stamps JSX with source ids before @vitejs/plugin-react, serves the AST-writer API as dev-server middleware, and auto-mounts the overlay. Works with Vite + React, React Router v7 (framework mode), TanStack Start and Astro+React dev servers.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "visual-editor",
+    "vite",
+    "vite-plugin",
+    "react",
+    "tailwind"
+  ],
+  "license": "MIT",
+  "author": "Aaqil Jamal",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/The-Design-Alchemist/visual-editor.git",
+    "directory": "packages/vite"
+  },
+  "homepage": "https://github.com/The-Design-Alchemist/visual-editor#readme",
+  "bugs": "https://github.com/The-Design-Alchemist/visual-editor/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "vite": ">=5.0.0"
+  },
+  "dependencies": {
+    "@aaqiljamal/visual-editor-runtime": "0.2.0",
+    "@aaqiljamal/visual-editor-server": "0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vite": "^8.0.0"
+  }
+}

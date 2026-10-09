@@ -617,6 +617,39 @@ test("GET /selection returns null when no overlay has reported a selection", asy
   assert.equal(body.selection, null);
 });
 
+test("POST /selection describes a call-site-only id as role=call and reads the real source", async () => {
+  const src = `import Link from "next/link";
+export function Nav() {
+  return <Link href="/" className={active ? "p-2" : "p-4"}>home</Link>;
+}
+`;
+  await writeFixture("components/nav.tsx", src);
+  // Column within line 3 (not the absolute offset — the fixture is multi-line).
+  const col = src.split("\n")[2]!.indexOf("<Link");
+  const post = await postJson("/selection", {
+    file: "components/nav.tsx",
+    line: 3,
+    col,
+    oid: `components/nav.tsx:3:${col}`,
+    oidAttribute: "data-oid-call",
+    className: "p-4",
+    tagName: "a",
+    componentName: null,
+    instanceCount: 1,
+  });
+  assert.equal(post.status, 200);
+  const body = (await post.json()) as {
+    selection: { refs: Array<{ role: string; found: boolean; editable: boolean; componentName: string | null; className: { kind: string } | null; reason?: string }> };
+  };
+  const [ref] = body.selection.refs;
+  assert.equal(ref!.role, "call");
+  assert.equal(ref!.found, true);
+  assert.equal(ref!.componentName, "Nav");
+  assert.equal(ref!.className?.kind, "conditional");
+  assert.equal(ref!.editable, false);
+  assert.match(ref!.reason ?? "", /conditional/);
+});
+
 test("POST /selection stores the payload; GET /selection returns it back", async () => {
   const payload = {
     file: "app/page.tsx",
@@ -634,9 +667,21 @@ test("POST /selection stores the payload; GET /selection returns it back", async
   const get = await authedFetch("/selection");
   const body = (await get.json()) as {
     ok: boolean;
-    selection: typeof payload;
+    selection: typeof payload & {
+      refs: Array<{ role: string; found: boolean; reason?: string }>;
+      selectedAt: number;
+    };
   };
-  assert.deepEqual(body.selection, payload);
+  // The stored selection is the payload plus server-side enrichment: one
+  // ElementContext per source ref (host, and call site when present).
+  const { refs, selectedAt, ...stored } = body.selection;
+  assert.deepEqual(stored, payload);
+  assert.equal(typeof selectedAt, "number");
+  assert.equal(refs.length, 1);
+  assert.equal(refs[0]!.role, "host");
+  // app/page.tsx doesn't exist in this temp workspace → not found, but
+  // the selection is still stored (enrichment is best-effort).
+  assert.equal(refs[0]!.found, false);
 });
 
 test("DELETE /selection clears the state", async () => {

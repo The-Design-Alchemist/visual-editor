@@ -50,11 +50,11 @@ function logErrs(label) {
 
 try {
   console.log(`→ ${PAGE_URL}`);
-  await page.goto(PAGE_URL, { waitUntil: "networkidle" });
+  await page.goto(PAGE_URL, { waitUntil: "load" });
 
   // Overlay mount marker.
   await page.waitForFunction(
-    () => document.body.dataset.visualEditorMounted === "true",
+    () => !!document.querySelector("visual-editor-anchor[data-mounted]"),
     null,
     { timeout: 8000 },
   );

@@ -23,9 +23,9 @@ const restoreAndSettle = async () => {
 };
 
 try {
-  await page.goto(PAGE_URL, { waitUntil: "networkidle" });
+  await page.goto(PAGE_URL, { waitUntil: "load" });
   await page.waitForFunction(
-    () => document.body.dataset.visualEditorMounted === "true",
+    () => !!document.querySelector("visual-editor-anchor[data-mounted]"),
     null,
     { timeout: 5000 },
   );

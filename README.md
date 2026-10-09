@@ -1,6 +1,6 @@
 # visual-editor
 
-> **Visual gestures on your `next dev` page → deterministic Tailwind / CSS Modules / styled-components edits in your source files.** With Claude Code as reviewer-committer (not interpreter) over stdio MCP.
+> **Point at an element in your running app. Edit it visually, or hand it to your coding agent with the exact source location attached.** Deterministic Tailwind / CSS Modules / styled-components edits from gestures; Claude Code (or Cursor, Codex, …) as reviewer, not interpreter.
 
 <table>
   <tr>
@@ -15,129 +15,154 @@
 
 ## Why this exists
 
-Most visual editors prompt an LLM to guess the edit. visual-editor doesn't guess.
-Every gesture maps to a deterministic AST transformation; if a write isn't
-provably safe, it refuses loudly with a structured reason. The LLM in the loop
-is for review and batching, not interpretation.
+"Make the padding on the login button a bit bigger" is a lossy way to describe a visual
+change: which button, which padding, how much, and in which file? Agents guess, and guess
+wrong. visual-editor removes the guessing:
 
-## Quick start
+- **Every DOM node knows its source** — a build-time stamp maps it to `file:line:col`, both the
+  element inside the component *and* the place the component was used.
+- **Gestures become exact edits** — drag, nudge, pick an asset → one class token or one CSS
+  declaration changes in your source. If the write can't be proven safe, it refuses loudly with a
+  structured reason instead of doing its best.
+- **Your agent gets facts, not prose** — selection, component name, which location owns the
+  token, a source snippet, computed styles, instance count, and your note. Through MCP, or as a
+  block you paste anywhere.
+
+## Quick start — Next.js (App Router, 15.3+, verified on 16.4)
 
 ```bash
 npm install --save-dev @aaqiljamal/visual-editor-next
 npx visual-editor-init
+npm run dev
 ```
 
-Then add **two lines** to `app/layout.tsx`:
+The init script writes a one-line Route Handler, wraps `next.config` in `withVisualEditor()`, and
+adds `.visual-editor/` to `.gitignore`. On Next ≥ 16.3 the overlay auto-mounts; nothing else to
+touch. No Babel config — SWC and Turbopack stay on. Details and the manual steps:
+[INSTALL.md](./INSTALL.md).
 
-```tsx
-import { VisualEditOverlay } from "@aaqiljamal/visual-editor-next";
+## Quick start — Vite + React
 
-// inside <body>:
-{process.env.NODE_ENV === "development" && <VisualEditOverlay />}
+```bash
+npm install --save-dev @aaqiljamal/visual-editor-vite
 ```
 
-Run `npm run dev`, hover any element, click, drag. Full options (including
-the standalone-server flow for Vite/Remix and the Claude Code MCP wiring):
-see [INSTALL.md](./INSTALL.md).
+```ts
+// vite.config.ts
+import react from "@vitejs/plugin-react";
+import { visualEditor } from "@aaqiljamal/visual-editor-vite";
+
+export default defineConfig({ plugins: [react(), visualEditor()] });
+```
+
+That's it: the plugin stamps JSX before React compiles it, serves the writer API on the dev
+server, and injects the overlay. React Router v7 (framework mode), TanStack Start and Astro+React
+use the same plugin.
+
+## How you share context with your agent
+
+Three ways, from zero-setup to fully wired:
+
+1. **Copy context** — select an element, type a note, click *Copy context*. Paste into any agent:
+
+   ```
+   [visual-editor] <button> in Button — components/ui/button.tsx:30:4
+   used at: app/page.tsx:42:8 (in Page)
+   className @ call site: p-4 bg-red-500
+   className @ host: cn(… +1 dynamic) — not editable: className is cn(...) with 1 non-static argument(s)
+   renders 3 instances · 96×36px · padding 16px · font-size 14px
+   note: too loud, make it secondary
+   ```
+
+2. **Pins + `/visual-editor`** — walk the page, pin elements with notes, then run one command in
+   Claude Code. The agent gets every pin with source refs, editability and snippets; it can flash
+   an outline in your browser to ask *"this one?"*, and marks pins green when done.
+
+3. **Just gestures** — drag or nudge, hit Apply. No language anywhere. The agent only reviews the
+   diff and commits.
 
 ## What works
 
 | Gesture | Outcome |
 |---|---|
-| Hover | Pink outline + source badge + box-model bands |
-| Click | 8 drag handles + 4 inner padding handles |
-| Drag side handle | Tailwind-scale snap → pending panel |
-| `[` / `]` | Padding step down/up |
-| `{` / `}` | Margin step down/up |
-| `Alt+ArrowKey` | Width / Height step |
-| Click `<img>` + `i` | Asset picker (lists everything in `public/`) |
-| Element wrapped in `cn()`/`clsx()`/`twMerge()` | Mutation inside the call — with static safety analysis |
-| Element using `{styles.x}` | CSS Module edit on the `.module.css` source |
-| Styled component | Edit on the tagged template's CSS text |
-| Apply | Source file written → Fast Refresh repaints |
-| Undo | Inline banner or in the history panel |
-| Shift-click + Alt-hover | Figma-style distance label |
+| Hover | Outline + `<Component> tag file:line:col` badge + box-model bands |
+| Click | Selection: 8 resize handles, 4 inner padding handles, selection panel |
+| Drag side handle / `Alt+Arrow` | Width / height → snapped to your Tailwind scale |
+| `[` `]` · `{` `}` · `Alt+[` `Alt+]` | Padding · margin · gap, one scale step |
+| Drag teal padding bars | Per-side padding (`p-4` → `p-4 pt-6`) |
+| `i` on an `<img>` | Asset picker over `public/` |
+| Element from a component that spreads props (shadcn/ui, Radix, `next/image`) | Edits the **call site** when it owns the token, the component otherwise |
+| `cn()` / `clsx()` / `twMerge()` with static args | Mutation inside the call, checked with tailwind-merge |
+| `className={styles.x}` | CSS Module declaration edit |
+| Static `styled.div\`…\`` | styled-components declaration edit |
+| Apply | Source written → Fast Refresh / HMR repaints; Undo in-panel or in history |
+| Shift-click + Alt-hover | Figma-style distance measurement |
+| Note + Enter | Pin for your agent; numbered marker on the page |
+| `Ctrl+Shift+E` / toolbar | Toggle edit mode (clicks select vs. the app behaves normally) |
 
 ## What it refuses (and why)
 
-Loud refusals over silent best-effort. Every refusal carries a structured reason:
-
-| Reason | What it means |
+| Reason | Meaning |
 |---|---|
-| `dynamic-uncertain-arg` | `cn("p-4", someVar)` — can't prove the new token sticks |
-| `dynamic-conflict` | `cn("p-4", "p-8")` — tailwind-merge would drop the new token |
-| `composes-chain` | CSS Module uses `composes:` — would leak through; edit by hand |
-| `styled-with-interpolation` | Styled has `${…}` — only fully-static templates supported |
-| `cross-file-styled-not-supported` | Styled definition lives in another file |
-| `path-outside-workspace` | Tried to write outside the project root |
-| `token-not-found` | The file changed externally — re-stage |
+| `dynamic-uncertain-arg` | `cn("p-4", someVar)` — a runtime arg could override the token |
+| `dynamic-conflict` | `cn("p-4", "p-8")` — tailwind-merge would drop your new token |
+| `no-classname-attribute` | Props are spread in; edit the call site instead (the overlay already picked it) |
+| `composes-chain` | CSS Module uses `composes:` — would leak into other rules |
+| `styled-with-interpolation` | Styled template has `${…}` |
+| `token-not-found` (409) | The file changed since you staged the edit |
+| `path-outside-workspace` / `cross-site-request` | Safety checks |
 
-## Verified on
+## Works with
 
-- Next.js **16.2.6** (App Router)
-- React **19.2.4**
-- Tailwind **v4** (`@tailwindcss/postcss`)
-- styled-components **6.x**
-
-Older Next/React may work but there's no automated coverage yet. File an issue
-if you hit something.
-
-## The packages
-
-| Package | What it is |
+| | Status |
 |---|---|
-| [`@aaqiljamal/visual-editor-next`](./packages/next) | Meta-package for Next.js — install this one |
-| [`@aaqiljamal/visual-editor-runtime`](./packages/runtime) | The browser overlay (Preact, closed Shadow DOM) |
-| [`@aaqiljamal/visual-editor-babel-plugin`](./packages/babel-plugin) | Stamps `data-oid` and related attributes on JSX at build time |
-| [`@aaqiljamal/visual-editor-server`](./packages/server) | The Node-side AST mutator (Tailwind / CSS Modules / styled-components) |
-| [`@aaqiljamal/visual-editor-mcp`](./packages/mcp) | stdio MCP server for Claude Code integration |
+| Next.js App Router, Turbopack or webpack | ✅ verified (16.4) — auto-mount needs ≥ 16.3 |
+| Vite + React (`@vitejs/plugin-react`, Babel or oxc) | ✅ verified (Vite 8) |
+| React Router v7 framework mode, TanStack Start, Astro + React | 🟡 same Vite plugin, untested |
+| Next.js Pages Router | 🟡 hover/select works; writes need a `pages/api` adapter (planned) |
+| Babel pipelines (CRA-era, custom) | ✅ `@aaqiljamal/visual-editor-babel-plugin` + standalone server |
+| Tailwind v3/v4 class tokens, CSS Modules, static styled-components / Emotion `styled.x` | ✅ |
+| Inline `style={{}}`, global CSS, CVA variants, Panda/StyleX | ❌ not yet (see [docs/AUDIT-2026-10.md](./docs/AUDIT-2026-10.md)) |
 
-## Claude Code integration
+## Claude Code (and other MCP agents)
 
 ```bash
 npm install --save-dev @aaqiljamal/visual-editor-mcp
 
 claude mcp add visual-editor \
-  --env VISUAL_EDITOR_WORKSPACE_ROOT="$(pwd)" \
   --env VISUAL_EDITOR_SERVER_URL="http://localhost:3000/api/visual-editor" \
   -- npx visual-editor-mcp
 ```
 
-Inside Claude Code, `/mcp` shows 6 tools (`get_selected_element`, `propose_change`,
-`apply_change`, `revert_change`, `apply_css_property`, `apply_styled_property`).
+Eight tools: `get_selected_element` (selection + pins + recent edits, with source refs and
+snippets), `propose_change`, `apply_change`, `revert_change`, `apply_css_property`,
+`apply_styled_property`, `highlight_element`, `resolve_pin`. `npx visual-editor-init --claude`
+drops a `/visual-editor` command into `.claude/commands/`. Cursor / Codex / Windsurf: same stdio
+server, see [INSTALL.md](./INSTALL.md#other-agents).
 
-## Roadmap
+## Packages
 
-- **v0.2** (current) — Tailwind, CSS Modules, styled-components, image swaps, undo, history, monorepo support
-- **v0.3** — Design tokens panel, CVA variant authoring, git checkpoint chain
-- **Out of scope** — production runtime, multi-cursor, instance-level edits, becoming Figma
+| Package | What it is |
+|---|---|
+| [`@aaqiljamal/visual-editor-next`](./packages/next) | Next.js: `withVisualEditor()` config wrapper, loader, Route Handler, init script |
+| [`@aaqiljamal/visual-editor-vite`](./packages/vite) | Vite plugin: transform + dev middleware + overlay injection |
+| [`@aaqiljamal/visual-editor-runtime`](./packages/runtime) | The browser overlay (closed Shadow DOM, framework-free `mountVisualEditor()`) |
+| [`@aaqiljamal/visual-editor-server`](./packages/server) | Stamper (`/transform`), AST mutators, transport-agnostic API core, standalone CLI |
+| [`@aaqiljamal/visual-editor-mcp`](./packages/mcp) | stdio MCP server |
+| [`@aaqiljamal/visual-editor-babel-plugin`](./packages/babel-plugin) | Same stamps for pipelines that already run Babel |
 
-Full deferral logic in [V02_PLAN.md](./V02_PLAN.md), principles in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md).
+## Demos
 
-## Demo
-
-The screenshots above were captured against a shadcn/ui dashboard at
-[`examples/shadcn-demo/`](./examples/shadcn-demo). It uses the published
-packages from npm (same install your friend would do), with one extra Babel
-plugin option for monorepo path resolution. Boot it:
-
-```bash
-cd examples/shadcn-demo
-npm install
-npm run dev
-# open http://localhost:3000
-```
-
-Recreate the screenshots with `node scripts/capture-demo-screenshots.mjs`.
+- [`examples/shadcn-demo`](./examples/shadcn-demo) — a shadcn/ui dashboard on Next.js (the screenshots above).
+- [`examples/vite-demo`](./examples/vite-demo) — Vite + React + Tailwind with a prop-spreading `Card`.
+- [`spikes/example-app`](./spikes/example-app) — edge-case fixtures: Server Components, `cn()`, CSS Modules, styled-components, images.
 
 ## Status
 
-- **129/129** server tests passing
-- **7/7** MCP smoke tests passing
-- End-to-end verified on Next 16 / React 19 / Tailwind v4 — both a barebones
-  spike (`spikes/example-app/`) for edge-case coverage and a shadcn/ui
-  dashboard (`examples/shadcn-demo/`) for real-world usage
-- Published packages installed and working from a fresh `create-next-app`
+- Server 138/138 tests (incl. stamper ↔ Babel-plugin parity), MCP 10/10, all packages typecheck.
+- End-to-end verified in a real browser on Next 16.4 / React 19.3 / Tailwind 4.3 and Vite 8.
+- [docs/AUDIT-2026-10.md](./docs/AUDIT-2026-10.md) lists what changed in v0.3 and what's next;
+  principles in [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md).
 
 ## License
 

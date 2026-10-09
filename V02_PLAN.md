@@ -1,4 +1,4 @@
-# Visual Edit — v0.2 Roadmap
+# Visual Edit — v0.2 Roadmap (historical) · v0.3 status at the end
 
 > Companion to `PROJECT_CONTEXT.md` §5. This document lists every item we
 > deferred from v0.1, sized realistically and ordered by tractability +
@@ -181,3 +181,28 @@ Tier A in full:
 Everything in Tier B, C, D stays as plan only.
 
 When you start v0.2 proper, this doc is the queue.
+
+
+---
+
+## v0.3 (2026-10) — what shipped, what's queued
+
+Shipped (see `docs/AUDIT-2026-10.md` for the audit that drove it):
+
+- Loader-based stamping (`withVisualEditor()`), overlay auto-mount on Next ≥ 16.3, no Babel config.
+- `@aaqiljamal/visual-editor-vite`.
+- `data-oid-call` for component call sites + token-aware edit targeting (shadcn/ui, Radix, `next/image`).
+- Enriched selection for agents (refs, editability, snippets, computed styles, ancestors, notes), pins,
+  copy-context, agent→browser highlight, `resolve_pin`.
+- Edit-mode toggle with click interception; cross-site write protection; one API core for all transports.
+- Fixed: workspace-root mismatch that broke Apply in any project not at its git root.
+
+Queued (rough order):
+
+1. Pages Router adapter (`pages/api/visual-editor/[...path].ts`) — ~40 lines on `createNodeHandler`.
+2. Inline `style={{}}` object mutation (ObjectExpression property swap) — unlocks MUI/Chakra-style code.
+3. Global CSS write-back: map `.btn` to the rule in an imported `.css` via `document.styleSheets` + source maps (spike).
+4. CVA base-string edits; variant editor later.
+5. Overlay unit tests (jsdom) for token targeting + ref picking; Playwright e2e in CI against `examples/`.
+6. Pin scoping by app origin in monorepos (pins are per workspace root today).
+7. Trusted Publishing + provenance (PUBLISHING.md).
