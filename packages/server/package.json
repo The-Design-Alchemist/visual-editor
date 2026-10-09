@@ -1,6 +1,6 @@
 {
   "name": "@aaqiljamal/visual-editor-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Node-side AST mutator for visual-editor: Tailwind className, CSS Modules, styled-components. Used by @aaqiljamal/visual-editor-next as a library, or standalone via the `visual-editor-server` CLI.",
   "type": "module",
   "main": "./dist/index.js",
