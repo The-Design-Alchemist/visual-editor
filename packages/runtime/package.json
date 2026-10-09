@@ -1,6 +1,6 @@
 {
   "name": "@aaqiljamal/visual-editor-runtime",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Visual-edit dev overlay (Preact in a closed Shadow DOM). Mount automatically via @aaqiljamal/visual-editor-next or the Vite plugin, or render <VisualEditOverlay /> yourself.",
   "type": "module",
   "main": "./dist/index.js",

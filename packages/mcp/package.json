@@ -1,6 +1,6 @@
 {
   "name": "@aaqiljamal/visual-editor-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "stdio MCP server for visual-editor — 8 tools for Claude Code / Cursor / Codex: read the user's browser selection + pins with source context, propose/apply/revert deterministic edits, highlight elements in the browser, resolve pins.",
   "type": "module",
   "bin": {
@@ -44,7 +44,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@aaqiljamal/visual-editor-server": "0.2.0",
+    "@aaqiljamal/visual-editor-server": "0.3.0",
     "@types/node": "^22.10.0",
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",

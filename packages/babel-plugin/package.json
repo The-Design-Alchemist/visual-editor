@@ -1,13 +1,21 @@
 {
   "name": "@aaqiljamal/visual-editor-babel-plugin",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Babel plugin: stamps data-oid + data-css-module-* + data-styled-* attributes on JSX elements so the visual-editor overlay can map runtime DOM back to source.",
   "main": "index.js",
-  "files": ["index.js", "README.md"],
+  "files": [
+    "index.js",
+    "README.md"
+  ],
   "scripts": {
     "build": "echo 'babel-plugin is plain CJS — no build needed'"
   },
-  "keywords": ["visual-editor", "babel-plugin", "react", "next"],
+  "keywords": [
+    "visual-editor",
+    "babel-plugin",
+    "react",
+    "next"
+  ],
   "license": "MIT",
   "author": "Aaqil Jamal",
   "repository": {
